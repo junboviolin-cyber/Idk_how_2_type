@@ -1,71 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="night">
 <head>
 <meta charset="UTF-8">
 <title>Focus Flow</title>
 <style>
   :root {
-    --bg1: #1e1b4b;
-    --bg2: #4c1d95;
-    --accent: #a78bfa;
-    --accent-soft: #c4b5fd;
-    --text: #f5f3ff;
-    --card: rgba(255,255,255,0.06);
-    --card-border: rgba(255,255,255,0.12);
+    --bg1: #1e1b4b; --bg2: #4c1d95; --accent: #a78bfa; --accent-soft: #c4b5fd;
+    --text: #f5f3ff; --card: rgba(255,255,255,0.06); --card-border: rgba(255,255,255,0.12);
+    --input-bg: rgba(255,255,255,0.08); --scroll-thumb: rgba(255,255,255,0.15);
+    --ring-track: rgba(255,255,255,0.1); --blob2: #f472b6; --blob3: #60a5fa;
+    --nav-bg: rgba(255,255,255,0.05);
+  }
+  html[data-theme="day"] {
+    --bg1: #fef9c3; --bg2: #bfdbfe; --accent: #fbbf24; --accent-soft: #f59e0b;
+    --text: #1e293b; --card: rgba(255,255,255,0.5); --card-border: rgba(30,41,59,0.12);
+    --input-bg: rgba(255,255,255,0.6); --scroll-thumb: rgba(30,41,59,0.15);
+    --ring-track: rgba(30,41,59,0.1); --blob2: #fca5a5; --blob3: #7dd3fc;
+    --nav-bg: rgba(255,255,255,0.35);
   }
   * { box-sizing: border-box; }
-  html, body {
-    margin: 0; padding: 0; height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
-    color: var(--text);
-    overflow: hidden;
-  }
-  #bg { position: fixed; inset: 0; z-index: -2; background: linear-gradient(135deg, var(--bg1), var(--bg2)); transition: background 1.8s ease; }
-  .blob { position: fixed; border-radius: 50%; filter: blur(60px); opacity: 0.35; z-index: -1; transition: background 1.8s ease, opacity 1.8s ease; }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; color: var(--text); overflow: hidden; transition: color 0.4s ease; }
+
+  #bg { position: fixed; inset: 0; z-index: -4; background: linear-gradient(135deg, var(--bg1), var(--bg2)); transition: background 1.8s ease; }
+
+  .dot-grid { position: fixed; inset: -40px; z-index: -3; opacity: 0.25; pointer-events: none; transition: transform 0.5s cubic-bezier(.2,.8,.2,1), opacity 0.6s ease; background-image: radial-gradient(var(--card-border) 1px, transparent 1px); background-size: 26px 26px; }
+
+  .parallax-wrap { position: fixed; inset: 0; z-index: -2; transition: transform 0.5s cubic-bezier(.2,.8,.2,1); }
+  .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.35; transition: background 1.8s ease; }
   #blob1 { width: 400px; height: 400px; top: -100px; left: -100px; background: var(--accent); animation: float1 18s ease-in-out infinite; }
-  #blob2 { width: 350px; height: 350px; bottom: -80px; right: -80px; background: #f472b6; animation: float2 22s ease-in-out infinite; }
-  #blob3 { width: 300px; height: 300px; bottom: 20%; left: 10%; background: #60a5fa; animation: float3 26s ease-in-out infinite; }
-  .running .blob { animation-duration: 9s, 11s, 13s; }
+  #blob2 { width: 350px; height: 350px; bottom: -80px; right: -80px; background: var(--blob2); animation: float2 22s ease-in-out infinite; }
+  #blob3 { width: 300px; height: 300px; bottom: 20%; left: 10%; background: var(--blob3); animation: float3 26s ease-in-out infinite; }
+  #blob4 { width: 220px; height: 220px; top: 30%; right: 8%; background: var(--accent-soft); opacity: 0.22; animation: float4 20s ease-in-out infinite; }
+  #blob5 { width: 260px; height: 260px; top: 55%; left: 42%; background: var(--blob3); opacity: 0.16; animation: float5 24s ease-in-out infinite; }
+  .running .blob { animation-duration: 9s, 11s, 13s, 10s, 12s; }
   @keyframes float1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(80px, 60px); } }
   @keyframes float2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-60px, -40px); } }
   @keyframes float3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(50px, -70px); } }
+  @keyframes float4 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-40px, 50px) scale(1.1); } }
+  @keyframes float5 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-70px, -30px); } }
 
-  .wrap { height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .panel { width: 100%; max-width: 430px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
-
-  .top-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
-  .mode-label { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent-soft); opacity: 0.9; }
-  .icon-btn {
-    background: var(--card); border: 1px solid var(--card-border); color: var(--text);
-    width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 14px;
-    display: flex; align-items: center; justify-content: center; padding: 0; opacity: 0.8;
+  #spotlight {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(200px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.28), transparent 65%);
+    mix-blend-mode: screen; transition: opacity 0.3s ease;
   }
-  .icon-btn:hover { opacity: 1; }
 
-  .cycle-dots { display: flex; gap: 8px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15); transition: background 0.3s ease, transform 0.3s ease; }
-  .dot.filled { background: var(--accent-soft); transform: scale(1.15); }
-  .dot.current { box-shadow: 0 0 0 3px rgba(255,255,255,0.15); }
+  .app { height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 18px 20px 0; }
 
-  .timer-ring { position: relative; width: 240px; height: 240px; }
+  .navbar {
+    width: 100%; max-width: 460px; display: flex; align-items: center; justify-content: space-between;
+    background: var(--nav-bg); border: 1px solid var(--card-border); border-radius: 999px;
+    padding: 6px; backdrop-filter: blur(12px); margin-bottom: 18px;
+  }
+  .nav-tabs { display: flex; gap: 2px; }
+  .nav-tab {
+    border: none; background: transparent; color: var(--text); opacity: 0.55; font-size: 13px;
+    padding: 8px 14px; border-radius: 999px; cursor: pointer; font-family: inherit; font-weight: 500;
+    transition: all 0.25s ease;
+  }
+  .nav-tab.active { opacity: 1; background: var(--card); box-shadow: 0 0 0 1px var(--card-border); }
+  .nav-badge { display: inline-block; min-width: 14px; padding: 0 4px; margin-left: 5px; border-radius: 999px; background: var(--accent-soft); color: #1e1b4b; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; vertical-align: middle; }
+  .theme-toggle {
+    border: none; background: var(--card); border: 1px solid var(--card-border); color: var(--text);
+    width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 15px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+
+  .pages { width: 100%; max-width: 430px; flex: 1; overflow-y: auto; padding-bottom: 24px; }
+  .page { display: none; flex-direction: column; align-items: center; gap: 16px; opacity: 0; transform: translateY(6px); animation: pageIn 0.35s ease forwards; }
+  .page.active { display: flex; }
+  @keyframes pageIn { to { opacity: 1; transform: translateY(0); } }
+
+  .timer-ring { position: relative; width: 230px; height: 230px; }
+  .ring-halo { position: absolute; inset: -22px; border-radius: 50%; background: radial-gradient(circle, var(--accent) 0%, transparent 70%); opacity: 0.15; filter: blur(20px); pointer-events: none; transition: opacity 0.4s ease, background 1.8s ease; }
+  .running .ring-halo { animation: ringBreathe 4s ease-in-out infinite; }
+  @keyframes ringBreathe { 0%, 100% { transform: scale(1); opacity: 0.16; } 50% { transform: scale(1.14); opacity: 0.34; } }
+  .ring-dot { position: absolute; top: 0; left: 0; width: 13px; height: 13px; border-radius: 50%; background: var(--accent-soft); box-shadow: 0 0 8px var(--accent-soft), 0 0 20px var(--accent-soft); transform: translate(-50%, -50%); pointer-events: none; transition: background 1.8s ease, box-shadow 1.8s ease, opacity 0.3s ease; }
+  .ripple { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 2px solid var(--accent-soft); opacity: 0.8; pointer-events: none; animation: rippleExpand 0.9s ease-out forwards; }
+  @keyframes rippleExpand { to { width: 260px; height: 260px; margin: -130px 0 0 -130px; opacity: 0; } }
   svg { transform: rotate(-90deg); }
   circle { fill: none; }
-  .ring-bg { stroke: rgba(255,255,255,0.1); stroke-width: 8; }
+  .ring-bg { stroke: var(--ring-track); stroke-width: 8; }
   .ring-progress { stroke: var(--accent-soft); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
   .running .ring-progress { filter: drop-shadow(0 0 6px var(--accent-soft)); }
   .time-display { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .time-text { font-size: 48px; font-weight: 300; font-variant-numeric: tabular-nums; cursor: pointer; }
-  .time-edit-hint { font-size: 10px; opacity: 0.35; margin-top: 2px; }
-  .time-input {
-    font-size: 40px; font-weight: 300; width: 130px; text-align: center; background: transparent;
-    border: none; border-bottom: 1px solid var(--accent-soft); color: var(--text); outline: none;
-    font-family: inherit; font-variant-numeric: tabular-nums;
-  }
+  .time-text { font-size: 46px; font-weight: 300; font-variant-numeric: tabular-nums; cursor: pointer; }
+  .time-text.tick { animation: digitTick 0.35s ease; }
+  @keyframes digitTick { 0% { transform: scale(1); } 35% { transform: scale(1.06); } 100% { transform: scale(1); } }
+  .time-edit-hint { font-size: 10px; opacity: 0.4; margin-top: 2px; }
+  .time-input { font-size: 38px; font-weight: 300; width: 130px; text-align: center; background: transparent; border: none; border-bottom: 1px solid var(--accent-soft); color: var(--text); outline: none; font-family: inherit; font-variant-numeric: tabular-nums; }
+  .time-edit-wrap { display: flex; align-items: center; gap: 4px; }
+  .time-edit-box { font-size: 34px; font-weight: 300; width: 58px; text-align: center; background: transparent; border: none; border-bottom: 1px solid var(--accent-soft); color: var(--text); outline: none; font-family: inherit; font-variant-numeric: tabular-nums; }
+  .time-edit-sep { font-size: 34px; font-weight: 300; opacity: 0.5; }
 
   .controls { display: flex; gap: 10px; }
-  button { border: none; border-radius: 999px; padding: 10px 22px; font-size: 14px; font-weight: 500; cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease; font-family: inherit; }
+  button { border: none; border-radius: 999px; padding: 10px 22px; font-size: 14px; font-weight: 500; cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.4s ease; font-family: inherit; }
   button:active { transform: scale(0.95); }
   .btn-primary { background: var(--accent-soft); color: #1e1b4b; min-width: 90px; }
+  .running .btn-primary { box-shadow: 0 0 18px var(--accent-soft); }
   .btn-ghost { background: var(--card); color: var(--text); border: 1px solid var(--card-border); }
   .btn-ghost:hover { opacity: 0.85; }
 
@@ -73,130 +105,360 @@
   .preset { background: var(--card); border: 1px solid var(--card-border); color: var(--text); padding: 6px 14px; border-radius: 999px; font-size: 12px; opacity: 0.75; }
   .preset.active { opacity: 1; background: rgba(167,139,250,0.25); border-color: var(--accent); }
 
-  .settings-panel {
-    width: 100%; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
-    padding: 14px; display: none; flex-direction: column; gap: 10px; font-size: 13px;
-  }
-  .settings-panel.open { display: flex; }
-  .settings-row { display: flex; align-items: center; justify-content: space-between; }
-  .settings-row input[type=number] {
-    width: 56px; background: rgba(255,255,255,0.08); border: 1px solid var(--card-border);
-    border-radius: 6px; padding: 4px 6px; color: var(--text); text-align: center; font-family: inherit;
-  }
-  .settings-row label.toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-
   .session-count { font-size: 12px; opacity: 0.6; text-align: center; }
   .hint { font-size: 11px; opacity: 0.35; text-align: center; }
 
-  .tasks { width: 100%; background: var(--card); border: 1px solid var(--card-border); border-radius: 16px; padding: 16px; backdrop-filter: blur(10px); }
-  .tasks h3 { margin: 0 0 10px; font-size: 13px; font-weight: 500; opacity: 0.8; letter-spacing: 1px; text-transform: uppercase; }
-  .task-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
-  .task-input-row input { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 14px; outline: none; }
-  .task-input-row input::placeholder { color: rgba(255,255,255,0.4); }
-  .task-input-row button { padding: 8px 16px; }
-  .task-list { list-style: none; margin: 0; padding: 0; max-height: 160px; overflow-y: auto; }
-  .task-list li { display: flex; align-items: center; gap: 10px; padding: 7px 4px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .focus-task-row { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--card-border); border-radius: 999px; padding: 6px 8px 6px 14px; font-size: 12px; max-width: 100%; animation: lockFadeUp 0.3s ease; }
+  .focus-task-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+  .focus-task-clear { background: none; border: none; color: var(--text); opacity: 0.4; cursor: pointer; font-size: 12px; padding: 2px 6px; flex-shrink: 0; }
+  .focus-task-clear:hover { opacity: 0.9; }
+
+  .ambient-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 2px; }
+  .ambient-btn { background: var(--card); border: 1px solid var(--card-border); color: var(--text); padding: 5px 12px; border-radius: 999px; font-size: 11px; opacity: 0.65; }
+  .ambient-btn.active { opacity: 1; background: rgba(167,139,250,0.25); border-color: var(--accent); }
+  .ambient-row input[type=range] { width: 70px; accent-color: var(--accent-soft); margin-left: 4px; }
+
+  .data-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .data-actions button { flex: 1; min-width: 80px; padding: 9px 10px; font-size: 12px; }
+  .btn-danger { color: #f87171; border-color: rgba(248,113,113,0.35); }
+  .btn-danger:hover { background: rgba(248,113,113,0.12); }
+
+  .mode-label { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent-soft); opacity: 0.9; transition: opacity 0.3s ease; }
+  .running .mode-label { animation: labelGlow 4s ease-in-out infinite; }
+  @keyframes labelGlow { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
+  .cycle-dots { display: flex; gap: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--card-border); transition: background 0.3s ease, transform 0.3s ease; }
+  .dot.filled { background: var(--accent-soft); transform: scale(1.15); }
+  .dot.current { box-shadow: 0 0 0 3px var(--card-border); }
+  .dot.pop { animation: dotPop 0.45s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes dotPop { 0% { transform: scale(1.15); } 50% { transform: scale(1.7); } 100% { transform: scale(1.15); } }
+
+  /* spotlight cards */
+  .spot-card {
+    position: relative; width: 100%; background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 18px; backdrop-filter: blur(10px); overflow: hidden;
+  }
+  .spot-card::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.25s ease;
+    background: radial-gradient(240px circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.16), transparent 70%);
+  }
+  .spot-card:hover::before { opacity: 1; }
+  html[data-theme="day"] .spot-card::before { background: radial-gradient(240px circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.55), transparent 70%); }
+
+  .spot-card h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+  .spot-card .sub { font-size: 12px; opacity: 0.55; margin-bottom: 14px; }
+
+  .task-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .task-input-row input { flex: 1; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 14px; outline: none; }
+  .task-input-row input::placeholder { color: var(--text); opacity: 0.4; }
+  .task-input-row button { padding: 9px 16px; }
+
+  .task-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .task-filters { display: flex; gap: 2px; background: var(--input-bg); border-radius: 999px; padding: 3px; }
+  .task-filter { background: transparent; border: none; color: var(--text); opacity: 0.55; font-size: 11px; padding: 5px 11px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s ease; }
+  .task-filter.active { opacity: 1; background: var(--card); box-shadow: 0 0 0 1px var(--card-border); }
+  .task-clear { background: transparent; border: none; color: var(--text); opacity: 0.45; font-size: 11px; cursor: pointer; padding: 4px 6px; font-family: inherit; }
+  .task-clear:hover { opacity: 0.9; }
+  .task-summary { font-size: 11px; opacity: 0.5; text-align: center; margin-top: 8px; }
+
+  .task-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+  .task-list li { display: flex; align-items: center; gap: 8px; padding: 9px 4px; font-size: 14px; border-bottom: 1px solid var(--card-border); transition: opacity 0.2s ease, transform 0.2s ease; }
   .task-list li:last-child { border-bottom: none; }
   .task-list li.done span { text-decoration: line-through; opacity: 0.4; }
-  .task-list li input[type=checkbox] { accent-color: var(--accent-soft); width: 16px; height: 16px; cursor: pointer; }
+  .task-list li.important { border-left: 2px solid var(--accent-soft); padding-left: 8px; margin-left: -8px; background: rgba(167,139,250,0.06); border-radius: 6px; }
+  .task-list li.important span { font-weight: 600; }
+  .task-list li.important.done { border-left-color: var(--card-border); background: none; }
+  .task-list li.dragging { opacity: 0.35; }
+  .task-list li input[type=checkbox] { accent-color: var(--accent-soft); width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
   .task-list li span { flex: 1; cursor: pointer; word-break: break-word; }
-  .task-list li .del { opacity: 0.4; cursor: pointer; font-size: 13px; background: none; padding: 2px 6px; }
+  .task-list li .del { opacity: 0.4; cursor: pointer; font-size: 13px; background: none; padding: 2px 6px; flex-shrink: 0; }
   .task-list li .del:hover { opacity: 0.9; }
+  .task-star { background: none; border: none; cursor: pointer; font-size: 15px; padding: 0 2px; opacity: 0.35; color: var(--accent-soft); flex-shrink: 0; transition: opacity 0.2s ease, transform 0.15s ease; }
+  .task-star.starred { opacity: 1; }
+  .task-star:active { transform: scale(1.3); }
+  .task-focus-btn { background: none; border: 1px solid transparent; cursor: pointer; font-size: 13px; padding: 2px 5px; border-radius: 6px; opacity: 0.35; color: var(--text); flex-shrink: 0; transition: all 0.2s ease; }
+  .task-focus-btn.active { opacity: 1; color: var(--accent-soft); border-color: var(--card-border); background: rgba(167,139,250,0.15); }
+  .task-rename-input { flex: 1; background: var(--input-bg); border: 1px solid var(--accent-soft); border-radius: 6px; padding: 4px 8px; color: var(--text); font-size: 14px; outline: none; font-family: inherit; }
+  .drag-handle { width: 12px; height: 16px; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2px; cursor: grab; opacity: 0.3; flex-shrink: 0; }
+  .drag-handle span { width: 3px; height: 3px; border-radius: 50%; background: var(--text); }
+  .drag-handle.hidden { visibility: hidden; }
   .empty-hint { font-size: 13px; opacity: 0.45; padding: 6px 4px; }
   .task-list::-webkit-scrollbar { width: 6px; }
-  .task-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+  .task-list::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 3px; }
 
-  .toast {
-    position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
-    background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); backdrop-filter: blur(10px);
-    padding: 10px 20px; border-radius: 999px; font-size: 13px; opacity: 0; transition: all 0.4s ease; pointer-events: none;
-  }
+  /* stats page */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+  .stat-box { text-align: center; }
+  .stat-num { font-size: 30px; font-weight: 300; }
+  .stat-label { font-size: 11px; opacity: 0.55; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; margin-top: 8px; }
+  .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: flex-end; height: 100%; }
+  .chart-bar { width: 100%; background: var(--accent-soft); border-radius: 5px 5px 2px 2px; min-height: 3px; transition: height 0.5s ease; }
+  .chart-day { font-size: 10px; opacity: 0.5; }
+
+  /* settings page */
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--card-border); font-size: 13px; }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row input[type=number] { width: 56px; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 6px; padding: 4px 6px; color: var(--text); text-align: center; font-family: inherit; }
+  .settings-row label.toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; width: 100%; justify-content: space-between; }
+  .keybind-cell { display: flex; align-items: center; gap: 8px; }
+  .keybind-chip { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 6px; padding: 3px 9px; font-size: 12px; font-variant-numeric: tabular-nums; min-width: 20px; text-align: center; }
+  .keybind-change { padding: 5px 10px; font-size: 11px; }
+  .keybind-change.listening { color: var(--accent-soft); border-color: var(--accent-soft); }
+
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); background: rgba(0,0,0,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 10px 20px; border-radius: 999px; font-size: 13px; opacity: 0; transition: all 0.4s ease; pointer-events: none; z-index: 10; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* lock screen */
+  .lock-screen { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 20px; transition: opacity 0.6s ease, visibility 0.6s, transform 0.6s ease; }
+  .lock-screen.unlocked { opacity: 0; visibility: hidden; pointer-events: none; transform: scale(1.04); }
+  .lock-card { width: 100%; max-width: 340px; background: var(--card); border: 1px solid var(--card-border); border-radius: 20px; padding: 30px 24px; backdrop-filter: blur(18px); display: flex; flex-direction: column; align-items: center; gap: 16px; box-shadow: 0 25px 70px rgba(0,0,0,0.6); }
+  .lock-icon { font-size: 34px; }
+
+  .lock-graphic { position: relative; width: 54px; height: 66px; margin: 4px auto 2px; }
+  .lock-shackle {
+    position: absolute; top: 0; left: 50%; width: 30px; height: 32px;
+    border: 6px solid var(--accent-soft); border-bottom: none; border-radius: 15px 15px 0 0;
+    transform: translateX(-50%); transform-origin: 50% 100%;
+    transition: transform 0.6s cubic-bezier(.34,1.56,.64,1), opacity 0.6s ease;
+  }
+  .lock-body {
+    position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 54px; height: 36px;
+    background: var(--accent-soft); border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    animation: lockPulse 2.6s ease-in-out infinite;
+  }
+  .lock-keyhole {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 9px; height: 9px; border-radius: 50%; background: #1e1b4b; opacity: 0.55;
+  }
+  .lock-keyhole::after {
+    content: ''; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+    width: 4px; height: 7px; background: #1e1b4b;
+  }
+  @keyframes lockPulse {
+    0%, 100% { box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(167,139,250,0.25); }
+    50% { box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 0 9px rgba(167,139,250,0); }
+  }
+  .lock-graphic.unlock-anim .lock-shackle { transform: translateX(-50%) rotate(-30deg) translate(-8px, -4px); opacity: 0.85; }
+  .lock-graphic.unlock-anim .lock-body { animation: lockBodyBounce 0.5s ease; }
+  .lock-graphic.pass-pulse .lock-body { animation: lockBodyBounce 0.4s ease; }
+  @keyframes lockBodyBounce { 0% { transform: translateX(-50%) scale(1); } 45% { transform: translateX(-50%) scale(1.14); } 100% { transform: translateX(-50%) scale(1); } }
+
+  @keyframes lockFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .lock-password-row, .lock-slider-area, .digit-row { animation: lockFadeUp 0.4s ease; }
+  @keyframes digitPop { from { opacity: 0; transform: scale(0.55); } to { opacity: 1; transform: scale(1); } }
+  .digit-box { animation: digitPop 0.3s cubic-bezier(.34,1.56,.64,1) backwards; }
+  .lock-title { font-size: 15px; font-weight: 600; text-align: center; }
+  .lock-sub { font-size: 12px; opacity: 0.55; text-align: center; margin-top: -8px; }
+  .lock-progress { display: flex; gap: 8px; }
+  .lock-input-area { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .lock-password-row { width: 100%; display: flex; gap: 8px; }
+  .lock-password-row input { flex: 1; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 14px; outline: none; font-family: inherit; }
+  .lock-password-row input:-webkit-autofill,
+  .lock-password-row input:-webkit-autofill:hover,
+  .lock-password-row input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text);
+    -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset;
+    box-shadow: 0 0 0px 1000px var(--input-bg) inset;
+    caret-color: var(--text);
+    transition: background-color 9999s ease-in-out 0s;
+  }
+  .lock-eye { background: var(--card); border: 1px solid var(--card-border); border-radius: 8px; padding: 0 12px; cursor: pointer; color: var(--text); font-size: 11px; white-space: nowrap; }
+  .digit-row { display: flex; gap: 8px; justify-content: center; }
+  .digit-box { width: 42px; height: 52px; text-align: center; font-size: 22px; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 10px; color: var(--text); outline: none; font-family: inherit; font-variant-numeric: tabular-nums; }
+  .digit-box:focus { border-color: var(--accent-soft); box-shadow: 0 0 0 3px rgba(167,139,250,0.25); }
+  .lock-slider-area { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .lock-slider-num { font-size: 42px; font-weight: 300; font-variant-numeric: tabular-nums; }
+  .lock-slider-area input[type=range] { width: 100%; accent-color: var(--accent-soft); }
+  .lock-error { font-size: 12px; color: #f87171; height: 14px; opacity: 0; transition: opacity 0.2s ease; }
+  .lock-error.show { opacity: 1; }
+  .lock-shake { animation: lockShake 0.4s ease; }
+  @keyframes lockShake { 10%,90% { transform: translateX(-2px); } 20%,80% { transform: translateX(4px); } 30%,50%,70% { transform: translateX(-8px); } 40%,60% { transform: translateX(8px); } }
+  .lock-submit { margin-top: 2px; }
 </style>
 </head>
 <body>
+<script>window.__focusFlowLocked = true;</script>
 
 <div id="bg"></div>
-<div class="blob" id="blob1"></div>
-<div class="blob" id="blob2"></div>
-<div class="blob" id="blob3"></div>
+<div class="dot-grid" id="dotGrid"></div>
+<div class="parallax-wrap" id="parallaxWrap">
+  <div class="blob" id="blob1"></div>
+  <div class="blob" id="blob2"></div>
+  <div class="blob" id="blob3"></div>
+  <div class="blob" id="blob4"></div>
+  <div class="blob" id="blob5"></div>
+</div>
+<div id="spotlight"></div>
 <div class="toast" id="toast"></div>
 
-<div class="wrap">
-  <div class="panel" id="panel">
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card" id="lockCard">
+    <div class="lock-graphic" id="lockGraphic">
+      <div class="lock-shackle" id="lockShackle"></div>
+      <div class="lock-body"><div class="lock-keyhole"></div></div>
+    </div>
+    <div class="lock-title" id="lockTitle">Locked</div>
+    <div class="lock-sub" id="lockSub"></div>
+    <div class="lock-progress" id="lockProgress"></div>
+    <div class="lock-input-area" id="lockInputArea"></div>
+    <div class="lock-error" id="lockError"></div>
+  </div>
+</div>
 
-    <div class="top-row">
+<div class="app" id="appRoot" style="display:none;">
+  <div class="navbar">
+    <div class="nav-tabs" id="navTabs">
+      <button class="nav-tab active" data-page="timer">Timer</button>
+      <button class="nav-tab" data-page="tasks">Tasks<span class="nav-badge" id="tasksNavBadge" style="display:none;"></span></button>
+      <button class="nav-tab" data-page="stats">Stats</button>
+      <button class="nav-tab" data-page="settings">Settings</button>
+    </div>
+    <button class="theme-toggle" id="themeToggle" title="Toggle day/night">🌙</button>
+  </div>
+
+  <div class="pages">
+
+    <!-- TIMER PAGE -->
+    <section class="page active" data-page="timer" id="page-timer">
       <div class="mode-label" id="modeLabel">Focus Session</div>
-      <button class="icon-btn" id="settingsBtn" title="Settings">⚙</button>
-    </div>
-
-    <div class="cycle-dots" id="cycleDots"></div>
-
-    <div class="timer-ring">
-      <svg width="240" height="240">
-        <circle class="ring-bg" cx="120" cy="120" r="108"></circle>
-        <circle class="ring-progress" id="ringProgress" cx="120" cy="120" r="108"></circle>
-      </svg>
-      <div class="time-display">
-        <div class="time-text" id="timeDisplay" title="Click to set custom time">25:00</div>
-        <div class="time-edit-hint" id="editHint">click to edit</div>
+      <div class="focus-task-row" id="focusTaskRow" style="display:none;">
+        <span id="focusTaskText"></span>
+        <button class="focus-task-clear" id="focusTaskClear" title="Clear">✕</button>
       </div>
-    </div>
-
-    <div class="presets" id="presets">
-      <div class="preset" data-mins="25">25 min</div>
-      <div class="preset" data-mins="45">45 min</div>
-      <div class="preset" data-mins="50">50 min</div>
-      <div class="preset" data-mins="90">90 min</div>
-    </div>
-
-    <div class="controls">
-      <button class="btn-primary" id="startBtn">Start</button>
-      <button class="btn-ghost" id="skipBtn">Skip</button>
-      <button class="btn-ghost" id="resetBtn">Reset</button>
-    </div>
-
-    <div class="session-count" id="sessionCount">0 sessions completed today</div>
-    <div class="hint">space = start/pause · r = reset · s = skip</div>
-
-    <div class="settings-panel" id="settingsPanel">
-      <div class="settings-row"><span>Short break (min)</span><input type="number" id="shortBreakInput" min="1" max="30" value="5"></div>
-      <div class="settings-row"><span>Long break (min)</span><input type="number" id="longBreakInput" min="1" max="60" value="15"></div>
-      <div class="settings-row"><span>Sessions before long break</span><input type="number" id="cycleLenInput" min="2" max="8" value="4"></div>
-      <div class="settings-row"><label class="toggle"><input type="checkbox" id="autoStartToggle" checked> Auto-start next session</label></div>
-      <div class="settings-row"><label class="toggle"><input type="checkbox" id="soundToggle" checked> Sound on completion</label></div>
-      <div class="settings-row"><label class="toggle"><input type="checkbox" id="notifyToggle"> Browser notifications</label></div>
-    </div>
-
-    <div class="tasks">
-      <h3>What are you focusing on?</h3>
-      <div class="task-input-row">
-        <input type="text" id="taskInput" placeholder="Add a task…" />
-        <button class="btn-ghost" id="addTaskBtn">Add</button>
+      <div class="cycle-dots" id="cycleDots"></div>
+      <div class="timer-ring">
+        <div class="ring-halo"></div>
+        <svg width="230" height="230">
+          <circle class="ring-bg" cx="115" cy="115" r="103"></circle>
+          <circle class="ring-progress" id="ringProgress" cx="115" cy="115" r="103"></circle>
+        </svg>
+        <div class="ring-dot" id="ringDot"></div>
+        <div class="time-display">
+          <div class="time-text" id="timeDisplay" title="Click to set custom time">25:00</div>
+          <div class="time-edit-hint" id="editHint">click to edit</div>
+        </div>
       </div>
-      <ul class="task-list" id="taskList"></ul>
-    </div>
+      <div class="presets" id="presets">
+        <div class="preset" data-mins="25">25 min</div>
+        <div class="preset" data-mins="45">45 min</div>
+        <div class="preset" data-mins="50">50 min</div>
+        <div class="preset" data-mins="90">90 min</div>
+      </div>
+      <div class="controls">
+        <button class="btn-primary" id="startBtn">Start</button>
+        <button class="btn-ghost" id="skipBtn">Skip</button>
+        <button class="btn-ghost" id="resetBtn">Reset</button>
+      </div>
+      <div class="session-count" id="sessionCount">0 sessions completed today</div>
+      <div class="hint">space = start/pause · r = reset · s = skip</div>
+
+      <div class="ambient-row" id="ambientRow">
+        <button class="ambient-btn" data-sound="none">None</button>
+        <button class="ambient-btn" data-sound="white">White</button>
+        <button class="ambient-btn" data-sound="brown">Brown</button>
+        <button class="ambient-btn" data-sound="rain">Rain</button>
+        <input type="range" id="ambientVolume" min="0" max="100" value="30" title="Ambient volume">
+      </div>
+    </section>
+
+    <!-- TASKS PAGE -->
+    <section class="page" data-page="tasks" id="page-tasks">
+      <div class="spot-card">
+        <h2>What are you focusing on?</h2>
+        <div class="sub">Tasks stick around across sessions.</div>
+        <div class="task-input-row">
+          <input type="text" id="taskInput" placeholder="Add a task…" />
+          <button class="btn-ghost" id="addTaskBtn">Add</button>
+        </div>
+        <div class="task-toolbar">
+          <div class="task-filters" id="taskFilters">
+            <button class="task-filter active" data-filter="all">All</button>
+            <button class="task-filter" data-filter="active">Active</button>
+            <button class="task-filter" data-filter="done">Done</button>
+          </div>
+          <button class="task-clear" id="clearDoneBtn">Clear done</button>
+        </div>
+        <ul class="task-list" id="taskList"></ul>
+        <div class="task-summary" id="taskSummary"></div>
+      </div>
+    </section>
+
+    <!-- STATS PAGE -->
+    <section class="page" data-page="stats" id="page-stats">
+      <div class="spot-card">
+        <h2>Your progress</h2>
+        <div class="sub">A quick look at how focus is going.</div>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="stat-num" id="statToday">0</div><div class="stat-label">Today</div></div>
+          <div class="stat-box"><div class="stat-num" id="statStreak">0</div><div class="stat-label">Day streak</div></div>
+          <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">All-time sessions</div></div>
+          <div class="stat-box"><div class="stat-num" id="statFocusTime">0m</div><div class="stat-label">Focus time</div></div>
+        </div>
+      </div>
+      <div class="spot-card">
+        <h2>Last 7 days</h2>
+        <div class="sub">Focus sessions completed per day.</div>
+        <div class="chart" id="chart"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS PAGE -->
+    <section class="page" data-page="settings" id="page-settings">
+      <div class="spot-card">
+        <h2>Session settings</h2>
+        <div class="sub">Fine-tune your Pomodoro rhythm.</div>
+        <div class="settings-row"><span>Short break (min)</span><input type="number" id="shortBreakInput" min="1" max="30" value="5"></div>
+        <div class="settings-row"><span>Long break (min)</span><input type="number" id="longBreakInput" min="1" max="60" value="15"></div>
+        <div class="settings-row"><span>Sessions before long break</span><input type="number" id="cycleLenInput" min="2" max="8" value="4"></div>
+      </div>
+      <div class="spot-card">
+        <h2>Behavior</h2>
+        <div class="settings-row"><label class="toggle"><span>Auto-start next session</span><input type="checkbox" id="autoStartToggle" checked></label></div>
+        <div class="settings-row"><label class="toggle"><span>Sound on completion</span><input type="checkbox" id="soundToggle" checked></label></div>
+        <div class="settings-row"><label class="toggle"><span>Browser notifications</span><input type="checkbox" id="notifyToggle"></label></div>
+      </div>
+      <div class="spot-card">
+        <h2>Controls</h2>
+        <div class="sub">Click Change, then press a key. Default: Space / R / S.</div>
+        <div class="settings-row"><span>Start / Pause</span><div class="keybind-cell"><span class="keybind-chip" id="kbStartPauseLabel"></span><button class="btn-ghost keybind-change" data-action="startPause">Change</button></div></div>
+        <div class="settings-row"><span>Reset</span><div class="keybind-cell"><span class="keybind-chip" id="kbResetLabel"></span><button class="btn-ghost keybind-change" data-action="reset">Change</button></div></div>
+        <div class="settings-row"><span>Skip</span><div class="keybind-cell"><span class="keybind-chip" id="kbSkipLabel"></span><button class="btn-ghost keybind-change" data-action="skip">Change</button></div></div>
+        <button class="btn-ghost" id="kbResetDefaultsBtn" style="margin-top:8px; width:100%;">Reset to defaults (Space / R / S)</button>
+      </div>
+      <div class="spot-card">
+        <h2>Your data</h2>
+        <div class="sub">Back it up, move it, or start clean.</div>
+        <div class="data-actions">
+          <button class="btn-ghost" id="exportBtn">Export</button>
+          <button class="btn-ghost" id="importBtn">Import</button>
+          <input type="file" id="importFile" accept="application/json" style="display:none;">
+          <button class="btn-ghost btn-danger" id="resetBtn2">Reset all</button>
+        </div>
+      </div>
+    </section>
+
   </div>
 </div>
 
 <script>
 (async function () {
-  // ---------- Persistent state ----------
-  const STORAGE_KEY = 'focus-flow-state-v1';
+  const STORAGE_KEY = 'focus-flow-state-v2';
   const todayStr = () => new Date().toISOString().slice(0, 10);
 
   let state = {
     date: todayStr(),
     sessionsToday: 0,
+    totalSessions: 0,
+    totalFocusSeconds: 0,
+    currentFocusId: null,
+    history: {},
     tasks: [],
     settings: {
-      focusMins: 25,
-      shortBreakMins: 5,
-      longBreakMins: 15,
-      cycleLen: 4,
-      autoStart: true,
-      sound: true,
-      notify: false
+      theme: 'night', focusMins: 25, shortBreakMins: 5, longBreakMins: 15,
+      cycleLen: 4, autoStart: true, sound: true, notify: false,
+      ambientSound: 'none', ambientVolume: 30,
+      keybinds: { startPause: ' ', reset: 'r', skip: 's' }
     }
   };
 
@@ -205,29 +467,73 @@
       const res = await window.storage.get(STORAGE_KEY, false);
       if (res && res.value) {
         const parsed = JSON.parse(res.value);
-        state = { ...state, ...parsed, settings: { ...state.settings, ...(parsed.settings || {}) } };
-        if (state.date !== todayStr()) {
-          state.date = todayStr();
-          state.sessionsToday = 0;
-        }
+        state = { ...state, ...parsed, settings: { ...state.settings, ...(parsed.settings || {}) }, history: parsed.history || {} };
+        if (state.date !== todayStr()) { state.date = todayStr(); state.sessionsToday = 0; }
       }
-    } catch (e) { /* first run or storage unavailable — use defaults */ }
+    } catch (e) {}
   }
-
   let saveTimer = null;
   function saveState() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
-      try { await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); }
-      catch (e) { /* best effort */ }
+      try { await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); } catch (e) {}
     }, 300);
   }
-
   await loadState();
+
+  // ---------- Theme ----------
+  const html = document.documentElement;
+  const themeToggle = document.getElementById('themeToggle');
+  function applyTheme() {
+    html.setAttribute('data-theme', state.settings.theme);
+    themeToggle.textContent = state.settings.theme === 'night' ? '🌙' : '☀️';
+  }
+  themeToggle.addEventListener('click', () => {
+    state.settings.theme = state.settings.theme === 'night' ? 'day' : 'night';
+    applyTheme(); saveState(); updateDisplay();
+  });
+  applyTheme();
+
+  // ---------- Nav ----------
+  const navTabs = document.querySelectorAll('.nav-tab');
+  const pages = document.querySelectorAll('.page');
+  navTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      navTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      pages.forEach(p => p.classList.remove('active'));
+      const target = document.getElementById('page-' + tab.dataset.page);
+      target.classList.add('active');
+      target.style.animation = 'none'; void target.offsetWidth; target.style.animation = '';
+      if (tab.dataset.page === 'stats') renderStats();
+    });
+  });
+
+  // ---------- Cursor spotlight & background parallax ----------
+  const spotlight = document.getElementById('spotlight');
+  const parallaxWrap = document.getElementById('parallaxWrap');
+  const dotGrid = document.getElementById('dotGrid');
+  window.addEventListener('mousemove', e => {
+    spotlight.style.setProperty('--mx', e.clientX + 'px');
+    spotlight.style.setProperty('--my', e.clientY + 'px');
+
+    const dx = (e.clientX / window.innerWidth - 0.5);
+    const dy = (e.clientY / window.innerHeight - 0.5);
+    parallaxWrap.style.transform = `translate(${dx * -36}px, ${dy * -36}px)`;
+    dotGrid.style.transform = `translate(${dx * -14}px, ${dy * -14}px)`;
+  });
+  document.querySelectorAll('.spot-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--x', (e.clientX - r.left) + 'px');
+      card.style.setProperty('--y', (e.clientY - r.top) + 'px');
+    });
+  });
 
   // ---------- DOM refs ----------
   const timeDisplay = document.getElementById('timeDisplay');
   const ringProgress = document.getElementById('ringProgress');
+  const ringDot = document.getElementById('ringDot');
   const startBtn = document.getElementById('startBtn');
   const resetBtn = document.getElementById('resetBtn');
   const skipBtn = document.getElementById('skipBtn');
@@ -237,8 +543,6 @@
   const taskInput = document.getElementById('taskInput');
   const addTaskBtn = document.getElementById('addTaskBtn');
   const taskList = document.getElementById('taskList');
-  const settingsBtn = document.getElementById('settingsBtn');
-  const settingsPanel = document.getElementById('settingsPanel');
   const shortBreakInput = document.getElementById('shortBreakInput');
   const longBreakInput = document.getElementById('longBreakInput');
   const cycleLenInput = document.getElementById('cycleLenInput');
@@ -246,67 +550,75 @@
   const soundToggle = document.getElementById('soundToggle');
   const notifyToggle = document.getElementById('notifyToggle');
   const cycleDots = document.getElementById('cycleDots');
-  const panel = document.getElementById('panel');
+  const appEl = document.querySelector('.app');
   const toast = document.getElementById('toast');
   const editHint = document.getElementById('editHint');
+  const statToday = document.getElementById('statToday');
+  const statTotal = document.getElementById('statTotal');
+  const statStreak = document.getElementById('statStreak');
+  const statFocusTime = document.getElementById('statFocusTime');
+  const chart = document.getElementById('chart');
+  const focusTaskRow = document.getElementById('focusTaskRow');
+  const focusTaskText = document.getElementById('focusTaskText');
+  const focusTaskClear = document.getElementById('focusTaskClear');
+  const ambientRow = document.getElementById('ambientRow');
+  const ambientVolume = document.getElementById('ambientVolume');
+  const exportBtn = document.getElementById('exportBtn');
+  const importBtn = document.getElementById('importBtn');
+  const importFile = document.getElementById('importFile');
+  const resetBtn2 = document.getElementById('resetBtn2');
+  const kbResetDefaultsBtn = document.getElementById('kbResetDefaultsBtn');
 
-  const CIRC = 2 * Math.PI * 108;
+  const CIRC = 2 * Math.PI * 103;
   ringProgress.style.strokeDasharray = CIRC;
   ringProgress.style.strokeDashoffset = 0;
 
-  // ---------- Timer state ----------
   const MODES = { FOCUS: 'focus', SHORT: 'short', LONG: 'long' };
   let mode = MODES.FOCUS;
   let totalSeconds = state.settings.focusMins * 60;
   let remaining = totalSeconds;
   let running = false;
   let intervalId = null;
-  let sessionInCycle = 0; // completed focus sessions since last long break
+  let sessionInCycle = 0;
+  let totalSecondsFocusOverride = state.settings.focusMins * 60;
 
-  const bgStages = {
-    [MODES.FOCUS]: [
-      { bg1: '#1e1b4b', bg2: '#4c1d95', accent: '#a78bfa' },
-      { bg1: '#1e293b', bg2: '#164e63', accent: '#67e8f9' },
-      { bg1: '#422006', bg2: '#7c2d12', accent: '#fdba74' },
-    ],
-    [MODES.SHORT]: [
-      { bg1: '#052e16', bg2: '#14532d', accent: '#86efac' },
-      { bg1: '#022c22', bg2: '#065f46', accent: '#5eead4' },
-    ],
-    [MODES.LONG]: [
-      { bg1: '#082f49', bg2: '#0c4a6e', accent: '#7dd3fc' },
-      { bg1: '#1e1b4b', bg2: '#312e81', accent: '#a5b4fc' },
-    ]
+  const nightStages = {
+    [MODES.FOCUS]: [ {bg1:'#000000',bg2:'#050505',accent:'#a78bfa'}, {bg1:'#000000',bg2:'#030303',accent:'#67e8f9'}, {bg1:'#000000',bg2:'#070502',accent:'#fdba74'} ],
+    [MODES.SHORT]: [ {bg1:'#000000',bg2:'#020502',accent:'#86efac'}, {bg1:'#000000',bg2:'#020504',accent:'#5eead4'} ],
+    [MODES.LONG]: [ {bg1:'#000000',bg2:'#020305',accent:'#7dd3fc'}, {bg1:'#000000',bg2:'#040308',accent:'#a5b4fc'} ]
+  };
+  const dayStages = {
+    [MODES.FOCUS]: [ {bg1:'#fef9c3',bg2:'#bae6fd',accent:'#fbbf24'}, {bg1:'#fef3c7',bg2:'#93c5fd',accent:'#f59e0b'}, {bg1:'#ffedd5',bg2:'#7dd3fc',accent:'#fb923c'} ],
+    [MODES.SHORT]: [ {bg1:'#dcfce7',bg2:'#bbf7d0',accent:'#4ade80'}, {bg1:'#d1fae5',bg2:'#a7f3d0',accent:'#34d399'} ],
+    [MODES.LONG]: [ {bg1:'#e0f2fe',bg2:'#bfdbfe',accent:'#60a5fa'}, {bg1:'#ede9fe',bg2:'#c7d2fe',accent:'#818cf8'} ]
   };
 
   function applyStage(progressFraction) {
-    const stages = bgStages[mode];
+    if (window.__focusFlowLocked) {
+      html.style.setProperty('--bg1', '#1e1b4b');
+      html.style.setProperty('--bg2', '#4c1d95');
+      html.style.setProperty('--accent', '#a78bfa');
+      document.getElementById('bg').style.background = 'linear-gradient(135deg, #1e1b4b, #4c1d95)';
+      document.getElementById('blob1').style.background = '#a78bfa';
+      return;
+    }
+    const stages = (state.settings.theme === 'day' ? dayStages : nightStages)[mode];
     const idx = Math.min(stages.length - 1, Math.floor(progressFraction * stages.length));
     const stage = stages[idx];
-    document.documentElement.style.setProperty('--bg1', stage.bg1);
-    document.documentElement.style.setProperty('--bg2', stage.bg2);
-    document.documentElement.style.setProperty('--accent', stage.accent);
+    html.style.setProperty('--bg1', stage.bg1);
+    html.style.setProperty('--bg2', stage.bg2);
+    html.style.setProperty('--accent', stage.accent);
     document.getElementById('bg').style.background = `linear-gradient(135deg, ${stage.bg1}, ${stage.bg2})`;
     document.getElementById('blob1').style.background = stage.accent;
   }
 
-  function formatTime(s) {
-    const m = Math.floor(s / 60).toString().padStart(2, '0');
-    const sec = (s % 60).toString().padStart(2, '0');
-    return `${m}:${sec}`;
-  }
-
-  function modeLabelText() {
-    if (mode === MODES.FOCUS) return 'Focus Session';
-    if (mode === MODES.SHORT) return 'Short Break';
-    return 'Long Break';
-  }
+  function formatTime(s) { const m = Math.floor(s/60).toString().padStart(2,'0'); const sec = (s%60).toString().padStart(2,'0'); return `${m}:${sec}`; }
+  function modeLabelText() { return mode === MODES.FOCUS ? 'Focus Session' : mode === MODES.SHORT ? 'Short Break' : 'Long Break'; }
 
   function renderDots() {
     cycleDots.innerHTML = '';
     for (let i = 0; i < state.settings.cycleLen; i++) {
-      const d = document.createElement('div');
-      d.className = 'dot';
+      const d = document.createElement('div'); d.className = 'dot';
       if (i < sessionInCycle) d.classList.add('filled');
       if (i === sessionInCycle && mode === MODES.FOCUS) d.classList.add('current');
       cycleDots.appendChild(d);
@@ -319,18 +631,18 @@
     ringProgress.style.strokeDashoffset = CIRC * (1 - progress);
     applyStage(progress);
     modeLabel.textContent = modeLabelText();
-    if (running) document.title = `${formatTime(remaining)} — ${modeLabelText()}`;
-    else document.title = 'Focus Flow';
+    document.title = running ? `${formatTime(remaining)} — ${modeLabelText()}` : 'Focus Flow';
     renderDots();
+
+    const angleRad = (-90 + progress * 360) * Math.PI / 180;
+    const cx = 115, cy = 115, r = 103;
+    ringDot.style.left = (cx + r * Math.cos(angleRad)) + 'px';
+    ringDot.style.top = (cy + r * Math.sin(angleRad)) + 'px';
+    ringDot.style.opacity = running ? '1' : '0.4';
   }
 
-  function showToast(msg) {
-    toast.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3000);
-  }
+  function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
 
-  // ---------- Sound ----------
   let audioCtx = null;
   function playChime() {
     if (!state.settings.sound) return;
@@ -338,114 +650,93 @@
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
       const notes = mode === MODES.FOCUS ? [523.25, 659.25, 783.99] : [659.25, 523.25];
       notes.forEach((freq, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.type = 'sine'; osc.frequency.value = freq;
         const start = audioCtx.currentTime + i * 0.15;
         gain.gain.setValueAtTime(0, start);
         gain.gain.linearRampToValueAtTime(0.15, start + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.001, start + 0.5);
         osc.connect(gain).connect(audioCtx.destination);
-        osc.start(start);
-        osc.stop(start + 0.5);
+        osc.start(start); osc.stop(start + 0.5);
       });
-    } catch (e) { /* audio not available */ }
+    } catch (e) {}
   }
-
   function notify(title, body) {
-    if (!state.settings.notify) return;
-    if (typeof Notification === 'undefined') return;
-    if (Notification.permission === 'granted') {
-      new Notification(title, { body });
-    }
+    if (!state.settings.notify || typeof Notification === 'undefined') return;
+    if (Notification.permission === 'granted') new Notification(title, { body });
   }
 
-  // ---------- Timer control ----------
   function durationFor(m) {
     if (m === MODES.FOCUS) return totalSecondsFocusOverride || state.settings.focusMins * 60;
     if (m === MODES.SHORT) return state.settings.shortBreakMins * 60;
     return state.settings.longBreakMins * 60;
   }
-
-  let totalSecondsFocusOverride = null; // set when user picks a preset/custom focus length
-
-  function switchMode(nextMode) {
-    mode = nextMode;
-    totalSeconds = durationFor(mode);
-    remaining = totalSeconds;
-    updateDisplay();
-  }
+  function switchMode(nextMode) { mode = nextMode; totalSeconds = durationFor(mode); remaining = totalSeconds; updateDisplay(); }
 
   function tick() {
     if (remaining > 0) {
-      remaining--;
-      updateDisplay();
-    } else {
-      completeSegment();
-    }
+      remaining--; updateDisplay();
+      timeDisplay.classList.remove('tick'); void timeDisplay.offsetWidth; timeDisplay.classList.add('tick');
+    } else { completeSegment(); }
+  }
+
+  function recordSessionToHistory() {
+    const d = todayStr();
+    state.history[d] = (state.history[d] || 0) + 1;
+    const keys = Object.keys(state.history).sort();
+    if (keys.length > 30) delete state.history[keys[0]];
+  }
+
+  function spawnRipple() {
+    const ring = document.querySelector('.timer-ring');
+    const r = document.createElement('div');
+    r.className = 'ripple';
+    ring.appendChild(r);
+    setTimeout(() => r.remove(), 950);
   }
 
   function completeSegment() {
-    running = false;
-    clearInterval(intervalId);
-    playChime();
-
+    running = false; clearInterval(intervalId); playChime(); spawnRipple();
     if (mode === MODES.FOCUS) {
-      sessionInCycle++;
-      state.sessionsToday++;
-      saveState();
+      sessionInCycle++; state.sessionsToday++; state.totalSessions++;
+      state.totalFocusSeconds = (state.totalFocusSeconds || 0) + totalSeconds;
+      const filledIdx = sessionInCycle - 1;
+      recordSessionToHistory(); saveState();
       sessionCount.textContent = `${state.sessionsToday} session${state.sessionsToday === 1 ? '' : 's'} completed today`;
       const goingLong = sessionInCycle >= state.settings.cycleLen;
       notify('Focus session complete', goingLong ? 'Time for a long break.' : 'Time for a short break.');
       showToast(goingLong ? 'Nice work! Long break time 🌿' : 'Session done — short break 🌊');
       switchMode(goingLong ? MODES.LONG : MODES.SHORT);
       if (goingLong) sessionInCycle = 0;
+      const dotsEls = cycleDots.querySelectorAll('.dot');
+      if (goingLong) {
+        dotsEls.forEach((d, i) => setTimeout(() => { d.classList.add('pop'); setTimeout(() => d.classList.remove('pop'), 450); }, i * 80));
+      } else if (dotsEls[filledIdx]) {
+        dotsEls[filledIdx].classList.add('pop');
+        setTimeout(() => dotsEls[filledIdx].classList.remove('pop'), 450);
+      }
     } else {
       notify('Break over', 'Ready to focus again?');
       showToast('Break\'s over — back to focus 🔥');
       switchMode(MODES.FOCUS);
     }
-
     startBtn.textContent = 'Start';
-    if (state.settings.autoStart) {
-      startPause();
-    }
+    if (state.settings.autoStart) startPause();
   }
 
   function startPause() {
+    if (window.__focusFlowLocked) return;
     if (running) {
-      running = false;
-      clearInterval(intervalId);
-      startBtn.textContent = 'Resume';
-      panel.classList.remove('running');
+      running = false; clearInterval(intervalId); startBtn.textContent = 'Resume'; appEl.classList.remove('running');
     } else {
-      running = true;
-      startBtn.textContent = 'Pause';
-      panel.classList.add('running');
+      running = true; startBtn.textContent = 'Pause'; appEl.classList.add('running');
       intervalId = setInterval(tick, 1000);
-      if (state.settings.notify && typeof Notification !== 'undefined' && Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
+      if (state.settings.notify && typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission();
     }
     updateDisplay();
   }
-
-  function resetTimer() {
-    running = false;
-    clearInterval(intervalId);
-    remaining = totalSeconds;
-    startBtn.textContent = 'Start';
-    panel.classList.remove('running');
-    updateDisplay();
-  }
-
-  function skipSegment() {
-    running = false;
-    clearInterval(intervalId);
-    remaining = 0;
-    completeSegment();
-  }
+  function resetTimer() { running = false; clearInterval(intervalId); remaining = totalSeconds; startBtn.textContent = 'Start'; appEl.classList.remove('running'); updateDisplay(); }
+  function skipSegment() { running = false; clearInterval(intervalId); remaining = 0; completeSegment(); }
 
   startBtn.addEventListener('click', startPause);
   resetBtn.addEventListener('click', resetTimer);
@@ -453,62 +744,47 @@
 
   presets.forEach(p => {
     p.addEventListener('click', () => {
-      presets.forEach(x => x.classList.remove('active'));
-      p.classList.add('active');
+      presets.forEach(x => x.classList.remove('active')); p.classList.add('active');
       const mins = parseInt(p.dataset.mins, 10);
-      totalSecondsFocusOverride = mins * 60;
-      state.settings.focusMins = mins;
-      saveState();
-      if (mode === MODES.FOCUS) {
-        totalSeconds = totalSecondsFocusOverride;
-        resetTimer();
-      }
+      totalSecondsFocusOverride = mins * 60; state.settings.focusMins = mins; saveState();
+      if (mode === MODES.FOCUS) { totalSeconds = totalSecondsFocusOverride; resetTimer(); }
     });
   });
 
-  // click-to-edit time
   timeDisplay.addEventListener('click', () => {
     if (running) return;
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'time-input';
-    input.value = formatTime(remaining);
-    timeDisplay.replaceWith(input);
-    editHint.style.display = 'none';
-    input.focus();
-    input.select();
+    const curMins = Math.floor(remaining / 60), curSecs = remaining % 60;
+    const wrap = document.createElement('div'); wrap.className = 'time-edit-wrap';
+    const minBox = document.createElement('input'); minBox.type = 'text'; minBox.className = 'time-edit-box'; minBox.maxLength = 2; minBox.inputMode = 'numeric'; minBox.value = String(curMins).padStart(2, '0');
+    const sep = document.createElement('span'); sep.className = 'time-edit-sep'; sep.textContent = ':';
+    const secBox = document.createElement('input'); secBox.type = 'text'; secBox.className = 'time-edit-box'; secBox.maxLength = 2; secBox.inputMode = 'numeric'; secBox.value = String(curSecs).padStart(2, '0');
+    wrap.appendChild(minBox); wrap.appendChild(sep); wrap.appendChild(secBox);
+    timeDisplay.replaceWith(wrap); editHint.style.display = 'none';
+    minBox.focus(); minBox.select();
+
+    minBox.addEventListener('input', () => { minBox.value = minBox.value.replace(/[^0-9]/g, ''); });
+    secBox.addEventListener('input', () => { secBox.value = secBox.value.replace(/[^0-9]/g, ''); });
+    minBox.addEventListener('keydown', e => { if (e.key === 'Enter') { secBox.focus(); secBox.select(); } });
+    secBox.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
 
     function commit() {
-      const parts = input.value.split(':').map(x => parseInt(x, 10));
-      let secs = null;
-      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-        secs = parts[0] * 60 + parts[1];
-      } else if (parts.length === 1 && !isNaN(parts[0])) {
-        secs = parts[0] * 60;
-      }
-      if (secs && secs > 0) {
-        totalSeconds = secs;
-        remaining = secs;
+      const m = parseInt(minBox.value, 10) || 0, s = parseInt(secBox.value, 10) || 0;
+      const secs = m * 60 + s;
+      if (secs > 0) {
+        totalSeconds = secs; remaining = secs;
         if (mode === MODES.FOCUS) totalSecondsFocusOverride = secs;
         presets.forEach(x => x.classList.remove('active'));
       }
-      input.replaceWith(timeDisplay);
-      editHint.style.display = '';
-      updateDisplay();
+      wrap.replaceWith(timeDisplay); editHint.style.display = ''; updateDisplay();
     }
-    input.addEventListener('blur', commit);
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+    minBox.addEventListener('blur', () => { setTimeout(() => { if (!wrap.contains(document.activeElement)) commit(); }, 80); });
+    secBox.addEventListener('blur', () => { setTimeout(() => { if (!wrap.contains(document.activeElement)) commit(); }, 80); });
   });
 
-  // ---------- Settings ----------
-  settingsBtn.addEventListener('click', () => settingsPanel.classList.toggle('open'));
   function syncSettingsUI() {
-    shortBreakInput.value = state.settings.shortBreakMins;
-    longBreakInput.value = state.settings.longBreakMins;
-    cycleLenInput.value = state.settings.cycleLen;
-    autoStartToggle.checked = state.settings.autoStart;
-    soundToggle.checked = state.settings.sound;
-    notifyToggle.checked = state.settings.notify;
+    shortBreakInput.value = state.settings.shortBreakMins; longBreakInput.value = state.settings.longBreakMins;
+    cycleLenInput.value = state.settings.cycleLen; autoStartToggle.checked = state.settings.autoStart;
+    soundToggle.checked = state.settings.sound; notifyToggle.checked = state.settings.notify;
   }
   shortBreakInput.addEventListener('change', () => { state.settings.shortBreakMins = Math.max(1, parseInt(shortBreakInput.value) || 5); saveState(); if (mode === MODES.SHORT && !running) switchMode(MODES.SHORT); });
   longBreakInput.addEventListener('change', () => { state.settings.longBreakMins = Math.max(1, parseInt(longBreakInput.value) || 15); saveState(); if (mode === MODES.LONG && !running) switchMode(MODES.LONG); });
@@ -516,74 +792,484 @@
   autoStartToggle.addEventListener('change', () => { state.settings.autoStart = autoStartToggle.checked; saveState(); });
   soundToggle.addEventListener('change', () => { state.settings.sound = soundToggle.checked; saveState(); });
   notifyToggle.addEventListener('change', () => {
-    state.settings.notify = notifyToggle.checked;
-    saveState();
-    if (state.settings.notify && typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
+    state.settings.notify = notifyToggle.checked; saveState();
+    if (state.settings.notify && typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission();
   });
 
-  // ---------- Tasks ----------
+  // ---------- Controls / keybinds ----------
+  let listeningForKeybind = false;
+  function keybindLabel(k) { return k === ' ' ? 'Space' : k.toUpperCase(); }
+  function refreshKeybindLabels() {
+    document.getElementById('kbStartPauseLabel').textContent = keybindLabel(state.settings.keybinds.startPause);
+    document.getElementById('kbResetLabel').textContent = keybindLabel(state.settings.keybinds.reset);
+    document.getElementById('kbSkipLabel').textContent = keybindLabel(state.settings.keybinds.skip);
+  }
+  document.querySelectorAll('.keybind-change').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (listeningForKeybind) return;
+      listeningForKeybind = true;
+      btn.classList.add('listening'); btn.textContent = 'Press a key…';
+      const action = btn.dataset.action;
+      function cleanup() {
+        listeningForKeybind = false;
+        btn.classList.remove('listening'); btn.textContent = 'Change';
+        document.removeEventListener('keydown', handler, true);
+      }
+      function handler(e) {
+        e.preventDefault(); e.stopPropagation();
+        if (e.key === 'Escape') { cleanup(); return; }
+        const key = e.code === 'Space' ? ' ' : e.key.toLowerCase();
+        if (key.length !== 1 && key !== ' ') return;
+        const kb = state.settings.keybinds;
+        const conflict = Object.keys(kb).find(a => a !== action && kb[a] === key);
+        if (conflict) { showToast('That key is already in use.'); cleanup(); return; }
+        kb[action] = key; saveState(); refreshKeybindLabels(); cleanup();
+      }
+      document.addEventListener('keydown', handler, true);
+    });
+  });
+  kbResetDefaultsBtn.addEventListener('click', () => {
+    state.settings.keybinds = { startPause: ' ', reset: 'r', skip: 's' };
+    saveState(); refreshKeybindLabels();
+    showToast('Controls reset to defaults');
+  });
+
+  // ---------- Ambient sound ----------
+  let ambientCtx = null, ambientSource = null, ambientGain = null, ambientFilter = null;
+  function makeNoiseBuffer(ctx, type) {
+    const len = ctx.sampleRate * 2;
+    const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    if (type === 'brown') {
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        const white = Math.random() * 2 - 1;
+        data[i] = (last + 0.02 * white) / 1.02;
+        last = data[i];
+        data[i] *= 3.2;
+      }
+    } else {
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
+  }
+  function stopAmbient() {
+    if (ambientSource) { try { ambientSource.stop(); } catch (e) {} ambientSource.disconnect(); ambientSource = null; }
+    if (ambientFilter) { ambientFilter.disconnect(); ambientFilter = null; }
+    if (ambientGain) { ambientGain.disconnect(); ambientGain = null; }
+  }
+  function startAmbient(type) {
+    stopAmbient();
+    if (type === 'none') return;
+    ambientCtx = ambientCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const buffer = makeNoiseBuffer(ambientCtx, type === 'brown' ? 'brown' : 'white');
+    ambientSource = ambientCtx.createBufferSource();
+    ambientSource.buffer = buffer; ambientSource.loop = true;
+    ambientFilter = ambientCtx.createBiquadFilter();
+    if (type === 'rain') { ambientFilter.type = 'bandpass'; ambientFilter.frequency.value = 2200; ambientFilter.Q.value = 0.6; }
+    else if (type === 'brown') { ambientFilter.type = 'lowpass'; ambientFilter.frequency.value = 400; }
+    else { ambientFilter.type = 'lowpass'; ambientFilter.frequency.value = 9000; }
+    ambientGain = ambientCtx.createGain();
+    ambientGain.gain.value = (state.settings.ambientVolume || 30) / 100 * 0.5;
+    ambientSource.connect(ambientFilter).connect(ambientGain).connect(ambientCtx.destination);
+    ambientSource.start();
+  }
+  function setAmbientVolume(v) { if (ambientGain) ambientGain.gain.value = v / 100 * 0.5; }
+
+  ambientRow.querySelectorAll('.ambient-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ambientRow.querySelectorAll('.ambient-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.settings.ambientSound = btn.dataset.sound;
+      saveState();
+      startAmbient(state.settings.ambientSound);
+    });
+  });
+  ambientVolume.addEventListener('input', () => {
+    state.settings.ambientVolume = parseInt(ambientVolume.value, 10);
+    setAmbientVolume(state.settings.ambientVolume);
+    saveState();
+  });
+
+  // ---------- Data export / import / reset ----------
+  exportBtn.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'focus-flow-backup.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Backup downloaded');
+  });
+  importBtn.addEventListener('click', () => importFile.click());
+  importFile.addEventListener('change', () => {
+    const file = importFile.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (!parsed || typeof parsed !== 'object') throw new Error('bad file');
+        state = { ...state, ...parsed, settings: { ...state.settings, ...(parsed.settings || {}) }, history: parsed.history || {} };
+        saveState();
+        syncSettingsUI(); renderTasks(); renderStats(); updateFocusTaskDisplay();
+        sessionCount.textContent = `${state.sessionsToday} session${state.sessionsToday === 1 ? '' : 's'} completed today`;
+        ambientRow.querySelectorAll('.ambient-btn').forEach(b => b.classList.toggle('active', b.dataset.sound === state.settings.ambientSound));
+        ambientVolume.value = state.settings.ambientVolume || 30;
+        showToast('Data imported');
+      } catch (e) { showToast('Could not read that file'); }
+      importFile.value = '';
+    };
+    reader.readAsText(file);
+  });
+  resetBtn2.addEventListener('click', () => {
+    if (!confirm('Reset all Focus Flow data? This clears tasks, stats, and settings on this device.')) return;
+    state = {
+      date: todayStr(), sessionsToday: 0, totalSessions: 0, totalFocusSeconds: 0, currentFocusId: null,
+      history: {}, tasks: [],
+      settings: { theme: state.settings.theme, focusMins: 25, shortBreakMins: 5, longBreakMins: 15, cycleLen: 4, autoStart: true, sound: true, notify: false, ambientSound: 'none', ambientVolume: 30 }
+    };
+    saveState();
+    stopAmbient();
+    syncSettingsUI(); renderTasks(); renderStats(); updateFocusTaskDisplay();
+    presets.forEach(p => p.classList.toggle('active', parseInt(p.dataset.mins) === 25));
+    totalSecondsFocusOverride = 25 * 60;
+    if (mode === MODES.FOCUS) { totalSeconds = totalSecondsFocusOverride; resetTimer(); }
+    sessionCount.textContent = '0 sessions completed today';
+    ambientRow.querySelectorAll('.ambient-btn').forEach(b => b.classList.toggle('active', b.dataset.sound === 'none'));
+    ambientVolume.value = 30;
+    showToast('All data reset');
+  });
+
+  let taskFilter = 'all';
+  let dragSrcTask = null;
+  const taskFilters = document.getElementById('taskFilters');
+  const clearDoneBtn = document.getElementById('clearDoneBtn');
+  const taskSummary = document.getElementById('taskSummary');
+  const tasksNavBadge = document.getElementById('tasksNavBadge');
+
+  taskFilters.querySelectorAll('.task-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      taskFilters.querySelectorAll('.task-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      taskFilter = btn.dataset.filter;
+      renderTasks();
+    });
+  });
+  clearDoneBtn.addEventListener('click', () => {
+    state.tasks = state.tasks.filter(t => !t.done);
+    saveState(); renderTasks();
+  });
+
   function renderTasks() {
     taskList.innerHTML = '';
-    if (state.tasks.length === 0) {
-      const hint = document.createElement('div');
-      hint.className = 'empty-hint';
-      hint.textContent = 'No tasks yet — add what you want to get done.';
+    const total = state.tasks.length;
+    const doneCount = state.tasks.filter(t => t.done).length;
+    tasksNavBadge.textContent = (total - doneCount) > 0 ? String(total - doneCount) : '';
+    tasksNavBadge.style.display = (total - doneCount) > 0 ? 'inline-block' : 'none';
+
+    let list = state.tasks.filter(t => taskFilter === 'all' ? true : taskFilter === 'active' ? !t.done : t.done);
+    list = list.slice().sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0));
+
+    if (list.length === 0) {
+      const hint = document.createElement('div'); hint.className = 'empty-hint';
+      hint.textContent = taskFilter === 'done' ? 'Nothing completed yet.' : taskFilter === 'active' ? 'Nothing active — nice.' : 'No tasks yet — add what you want to get done.';
       taskList.appendChild(hint);
-      return;
+    } else {
+      list.forEach(t => {
+        if (!t.id) t.id = 'id_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        const li = document.createElement('li'); if (t.done) li.classList.add('done'); if (t.starred) li.classList.add('important');
+        li.draggable = taskFilter === 'all';
+
+        const handle = document.createElement('div'); handle.className = 'drag-handle' + (taskFilter === 'all' ? '' : ' hidden');
+        for (let k = 0; k < 6; k++) handle.appendChild(document.createElement('span'));
+
+        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = t.done;
+        cb.addEventListener('change', () => { t.done = cb.checked; saveState(); renderTasks(); });
+
+        const span = document.createElement('span'); span.textContent = t.text; span.title = 'Double-click to rename';
+        span.addEventListener('click', () => { t.done = !t.done; saveState(); renderTasks(); });
+        span.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          const input = document.createElement('input');
+          input.type = 'text'; input.value = t.text; input.className = 'task-rename-input';
+          li.replaceChild(input, span);
+          input.focus(); input.select();
+          const commit = () => { const v = input.value.trim(); if (v) t.text = v; saveState(); renderTasks(); };
+          input.addEventListener('blur', commit);
+          input.addEventListener('keydown', e2 => { if (e2.key === 'Enter') input.blur(); });
+        });
+
+        const focusBtn = document.createElement('button');
+        focusBtn.className = 'task-focus-btn' + (state.currentFocusId === t.id ? ' active' : '');
+        focusBtn.textContent = '→'; focusBtn.title = 'Set as current focus';
+        focusBtn.addEventListener('click', () => {
+          state.currentFocusId = (state.currentFocusId === t.id) ? null : t.id;
+          saveState(); renderTasks(); updateFocusTaskDisplay();
+        });
+
+        const star = document.createElement('button'); star.className = 'task-star' + (t.starred ? ' starred' : ''); star.textContent = t.starred ? '★' : '☆';
+        star.addEventListener('click', () => { t.starred = !t.starred; saveState(); renderTasks(); });
+
+        const del = document.createElement('button'); del.className = 'del'; del.textContent = '✕';
+        del.addEventListener('click', () => {
+          const idx = state.tasks.indexOf(t); if (idx > -1) state.tasks.splice(idx, 1);
+          if (state.currentFocusId === t.id) state.currentFocusId = null;
+          saveState(); renderTasks(); updateFocusTaskDisplay();
+        });
+
+        li.addEventListener('dragstart', () => { dragSrcTask = t; li.classList.add('dragging'); });
+        li.addEventListener('dragend', () => { li.classList.remove('dragging'); dragSrcTask = null; });
+        li.addEventListener('dragover', e => e.preventDefault());
+        li.addEventListener('drop', e => {
+          e.preventDefault();
+          if (!dragSrcTask || dragSrcTask === t) return;
+          const from = state.tasks.indexOf(dragSrcTask);
+          const to = state.tasks.indexOf(t);
+          if (from === -1 || to === -1) return;
+          state.tasks.splice(from, 1);
+          state.tasks.splice(to, 0, dragSrcTask);
+          saveState(); renderTasks();
+        });
+
+        li.appendChild(handle); li.appendChild(cb); li.appendChild(span); li.appendChild(focusBtn); li.appendChild(star); li.appendChild(del);
+        taskList.appendChild(li);
+      });
     }
-    state.tasks.forEach((t, i) => {
-      const li = document.createElement('li');
-      if (t.done) li.classList.add('done');
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = t.done;
-      cb.addEventListener('change', () => { t.done = cb.checked; saveState(); renderTasks(); });
-      const span = document.createElement('span');
-      span.textContent = t.text;
-      span.addEventListener('click', () => { t.done = !t.done; saveState(); renderTasks(); });
-      const del = document.createElement('button');
-      del.className = 'del';
-      del.textContent = '✕';
-      del.addEventListener('click', () => { state.tasks.splice(i, 1); saveState(); renderTasks(); });
-      li.appendChild(cb);
-      li.appendChild(span);
-      li.appendChild(del);
-      taskList.appendChild(li);
-    });
+    taskSummary.textContent = total > 0 ? `${doneCount} of ${total} done` : '';
   }
 
-  function addTask() {
-    const val = taskInput.value.trim();
-    if (!val) return;
-    state.tasks.push({ text: val, done: false });
-    taskInput.value = '';
-    saveState();
-    renderTasks();
+  function updateFocusTaskDisplay() {
+    const t = state.tasks.find(x => x.id === state.currentFocusId);
+    if (t) {
+      focusTaskText.textContent = t.text;
+      focusTaskRow.style.display = 'flex';
+    } else {
+      focusTaskRow.style.display = 'none';
+    }
   }
+  focusTaskClear.addEventListener('click', () => { state.currentFocusId = null; saveState(); renderTasks(); updateFocusTaskDisplay(); });
 
+  function addTask() { const val = taskInput.value.trim(); if (!val) return; state.tasks.push({ text: val, done: false, starred: false, id: 'id_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) }); taskInput.value = ''; saveState(); renderTasks(); }
   addTaskBtn.addEventListener('click', addTask);
   taskInput.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
 
-  // ---------- Keyboard shortcuts ----------
+  function computeStreak() {
+    let streak = 0;
+    let d = new Date();
+    let key = d.toISOString().slice(0, 10);
+    if (!(state.history[key] > 0)) d.setDate(d.getDate() - 1);
+    while (true) {
+      key = d.toISOString().slice(0, 10);
+      if (state.history[key] > 0) { streak++; d.setDate(d.getDate() - 1); } else break;
+    }
+    return streak;
+  }
+  function formatDuration(totalSecs) {
+    const h = Math.floor(totalSecs / 3600), m = Math.floor((totalSecs % 3600) / 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  function renderStats() {
+    statToday.textContent = state.sessionsToday;
+    statTotal.textContent = state.totalSessions;
+    statStreak.textContent = computeStreak();
+    statFocusTime.textContent = formatDuration(state.totalFocusSeconds || 0);
+    chart.innerHTML = '';
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      days.push(d.toISOString().slice(0, 10));
+    }
+    const max = Math.max(1, ...days.map(d => state.history[d] || 0));
+    days.forEach(d => {
+      const count = state.history[d] || 0;
+      const col = document.createElement('div'); col.className = 'chart-col';
+      const bar = document.createElement('div'); bar.className = 'chart-bar';
+      bar.style.height = Math.max(3, (count / max) * 100) + '%';
+      bar.title = `${count} session${count === 1 ? '' : 's'}`;
+      const label = document.createElement('div'); label.className = 'chart-day';
+      label.textContent = new Date(d + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short' })[0];
+      col.appendChild(bar); col.appendChild(label); chart.appendChild(col);
+    });
+  }
+
+  function keyMatches(e, bound) {
+    if (bound === ' ') return e.code === 'Space';
+    return e.key.toLowerCase() === bound.toLowerCase();
+  }
   document.addEventListener('keydown', e => {
-    if (document.activeElement === taskInput || document.activeElement.classList.contains('time-input')) return;
-    if (e.code === 'Space') { e.preventDefault(); startPause(); }
-    else if (e.key === 'r' || e.key === 'R') { resetTimer(); }
-    else if (e.key === 's' || e.key === 'S') { skipSegment(); }
+    if (listeningForKeybind) return;
+    const ae = document.activeElement;
+    if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+    const kb = state.settings.keybinds;
+    if (keyMatches(e, kb.startPause)) { e.preventDefault(); startPause(); }
+    else if (keyMatches(e, kb.reset)) resetTimer();
+    else if (keyMatches(e, kb.skip)) skipSegment();
   });
 
-  // ---------- Init ----------
   presets.forEach(p => { if (parseInt(p.dataset.mins) === state.settings.focusMins) p.classList.add('active'); });
   if (![25,45,50,90].includes(state.settings.focusMins)) presets[0].classList.add('active');
-  totalSecondsFocusOverride = state.settings.focusMins * 60;
-  totalSeconds = totalSecondsFocusOverride;
-  remaining = totalSeconds;
+  totalSecondsFocusOverride = state.settings.focusMins * 60; totalSeconds = totalSecondsFocusOverride; remaining = totalSeconds;
   sessionCount.textContent = `${state.sessionsToday} session${state.sessionsToday === 1 ? '' : 's'} completed today`;
-  syncSettingsUI();
-  updateDisplay();
-  renderTasks();
+  ambientRow.querySelectorAll('.ambient-btn').forEach(b => b.classList.toggle('active', b.dataset.sound === (state.settings.ambientSound || 'none')));
+  ambientVolume.value = state.settings.ambientVolume || 30;
+  window.__focusFlowRefreshDisplay = updateDisplay;
+  syncSettingsUI(); updateDisplay(); renderTasks(); renderStats(); updateFocusTaskDisplay(); refreshKeybindLabels();
+})();
+</script>
+
+<script>
+(function () {
+  const pad2 = n => n.toString().padStart(2, '0');
+
+  const stages = [
+    { type: 'password', answer: 'onlyyouknowthis' },
+    {
+      type: 'digits', length: 4, restartOnFail: true,
+      check: (value) => {
+        const codesFor = (d) => {
+          const h24 = d.getHours(), m = d.getMinutes();
+          const h12 = ((h24 + 11) % 12) + 1;
+          return [pad2(h24) + pad2(m), pad2(h12) + pad2(m)];
+        };
+        const now = new Date();
+        const prevD = new Date(now.getTime() - 60000);
+        const valid = [...codesFor(now), ...codesFor(prevD)];
+        return valid.includes(value);
+      }
+    },
+    { type: 'slider', answer: 59, restartOnFail: true }
+  ];
+  let stageIdx = 0;
+
+  const lockGraphic = document.getElementById('lockGraphic');
+  const lockTitle = document.getElementById('lockTitle');
+  const lockSub = document.getElementById('lockSub');
+  const lockProgress = document.getElementById('lockProgress');
+  const lockInputArea = document.getElementById('lockInputArea');
+  const lockError = document.getElementById('lockError');
+  const lockCard = document.getElementById('lockCard');
+  const lockScreen = document.getElementById('lockScreen');
+  const appRoot = document.getElementById('appRoot');
+
+  function renderProgress() {
+    lockProgress.innerHTML = '';
+    stages.forEach((_, i) => {
+      const d = document.createElement('div'); d.className = 'dot';
+      if (i < stageIdx) d.classList.add('filled');
+      if (i === stageIdx) d.classList.add('current');
+      lockProgress.appendChild(d);
+    });
+  }
+
+  function clearError() { lockError.textContent = ''; lockError.classList.remove('show'); }
+  function showError(msg) {
+    lockError.textContent = msg; lockError.classList.add('show');
+    lockCard.classList.remove('lock-shake'); void lockCard.offsetWidth; lockCard.classList.add('lock-shake');
+  }
+
+  function renderStage() {
+    clearError();
+    const s = stages[stageIdx];
+    lockTitle.textContent = 'Locked';
+    lockSub.textContent = '';
+    lockSub.style.display = 'none';
+    renderProgress();
+    lockInputArea.innerHTML = '';
+
+    if (s.type === 'password') {
+      const row = document.createElement('div'); row.className = 'lock-password-row';
+      const input = document.createElement('input'); input.type = 'password'; input.placeholder = 'Passcode'; input.autocomplete = 'new-password'; input.name = 'ff-passcode';
+      const eye = document.createElement('button'); eye.type = 'button'; eye.className = 'lock-eye'; eye.textContent = 'Unhide';
+      eye.addEventListener('click', () => {
+        input.type = input.type === 'password' ? 'text' : 'password';
+        eye.textContent = input.type === 'password' ? 'Unhide' : 'Hide';
+      });
+      row.appendChild(input); row.appendChild(eye);
+      const btn = document.createElement('button'); btn.className = 'btn-primary lock-submit'; btn.textContent = 'Unlock';
+      lockInputArea.appendChild(row); lockInputArea.appendChild(btn);
+      const submit = () => attemptUnlock(input.value);
+      btn.addEventListener('click', submit);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+      setTimeout(() => input.focus(), 50);
+
+    } else if (s.type === 'digits') {
+      const len = s.length;
+      const row = document.createElement('div'); row.className = 'digit-row';
+      const boxes = [];
+      for (let i = 0; i < len; i++) {
+        const box = document.createElement('input');
+        box.className = 'digit-box'; box.maxLength = 1; box.inputMode = 'numeric'; box.type = 'text';
+        box.style.animationDelay = (i * 0.05) + 's';
+        box.addEventListener('input', () => {
+          box.value = box.value.replace(/[^0-9]/g, '');
+          if (box.value && i < len - 1) boxes[i + 1].focus();
+        });
+        box.addEventListener('keydown', e => {
+          if (e.key === 'Backspace' && !box.value && i > 0) boxes[i - 1].focus();
+          if (e.key === 'Enter') submitDigits();
+        });
+        boxes.push(box); row.appendChild(box);
+      }
+      lockInputArea.appendChild(row);
+      const checkBtn = document.createElement('button'); checkBtn.className = 'btn-primary lock-submit'; checkBtn.textContent = 'Check';
+      checkBtn.addEventListener('click', submitDigits);
+      lockInputArea.appendChild(checkBtn);
+      setTimeout(() => boxes[0].focus(), 50);
+      function submitDigits() { attemptUnlock(boxes.map(b => b.value).join('')); }
+
+    } else if (s.type === 'slider') {
+      const wrap = document.createElement('div'); wrap.className = 'lock-slider-area';
+      const num = document.createElement('div'); num.className = 'lock-slider-num'; num.textContent = '0';
+      const range = document.createElement('input'); range.type = 'range'; range.min = 0; range.max = 100; range.value = 0;
+      range.addEventListener('input', () => { num.textContent = range.value; });
+      const btn = document.createElement('button'); btn.className = 'btn-primary lock-submit'; btn.textContent = 'Confirm';
+      btn.addEventListener('click', () => attemptUnlock(parseInt(range.value, 10)));
+      wrap.appendChild(num); wrap.appendChild(range);
+      lockInputArea.appendChild(wrap); lockInputArea.appendChild(btn);
+    }
+  }
+
+  function attemptUnlock(value) {
+    const s = stages[stageIdx];
+    let correct;
+    if (s.check) correct = s.check(value);
+    else if (s.type === 'slider') correct = value === s.answer;
+    else correct = String(value) === String(s.answer);
+
+    if (correct) {
+      clearError();
+      lockGraphic.classList.remove('unlock-anim'); void lockGraphic.offsetWidth; lockGraphic.classList.add('pass-pulse');
+      setTimeout(() => lockGraphic.classList.remove('pass-pulse'), 400);
+      stageIdx++;
+      if (stageIdx >= stages.length) finishUnlock();
+      else setTimeout(renderStage, 250);
+    } else {
+      if (s.restartOnFail) {
+        showError('Wrong — starting over.');
+        setTimeout(() => { stageIdx = 0; renderStage(); }, 700);
+      } else {
+        showError('Not quite — try again.');
+      }
+    }
+  }
+
+  function finishUnlock() {
+    lockTitle.textContent = 'Unlocked';
+    lockSub.textContent = 'Welcome back.';
+    lockSub.style.display = '';
+    lockInputArea.innerHTML = '';
+    renderProgress();
+    lockGraphic.classList.add('unlock-anim');
+    window.__focusFlowLocked = false;
+    setTimeout(() => {
+      lockScreen.classList.add('unlocked');
+      appRoot.style.display = 'flex';
+      if (window.__focusFlowRefreshDisplay) window.__focusFlowRefreshDisplay();
+    }, 650);
+  }
+
+  renderStage();
 })();
 </script>
 
