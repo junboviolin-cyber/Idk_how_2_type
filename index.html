@@ -114,6 +114,14 @@
   .focus-task-clear:hover { opacity: 0.9; }
 
   .ambient-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 2px; }
+
+  .lock-toggle-btn { background: var(--card); border: 1px solid var(--card-border); color: var(--text); opacity: 0.6; font-size: 11px; padding: 6px 14px; border-radius: 999px; }
+  .lock-toggle-btn.active { opacity: 1; color: #f87171; border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.1); }
+  .lock-toggle-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .lock-confirm { flex-direction: column; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px 18px; animation: lockFadeUp 0.25s ease; }
+  .lock-confirm-text { font-size: 13px; text-align: center; opacity: 0.85; }
+  .lock-confirm-btns { display: flex; gap: 10px; }
   .ambient-btn { background: var(--card); border: 1px solid var(--card-border); color: var(--text); padding: 5px 12px; border-radius: 999px; font-size: 11px; opacity: 0.65; }
   .ambient-btn.active { opacity: 1; background: rgba(167,139,250,0.25); border-color: var(--accent); }
   .ambient-row input[type=range] { width: 70px; accent-color: var(--accent-soft); margin-left: 4px; }
@@ -179,7 +187,7 @@
   .task-focus-btn { background: none; border: 1px solid transparent; cursor: pointer; font-size: 13px; padding: 2px 5px; border-radius: 6px; opacity: 0.35; color: var(--text); flex-shrink: 0; transition: all 0.2s ease; }
   .task-focus-btn.active { opacity: 1; color: var(--accent-soft); border-color: var(--card-border); background: rgba(167,139,250,0.15); }
   .task-rename-input { flex: 1; background: var(--input-bg); border: 1px solid var(--accent-soft); border-radius: 6px; padding: 4px 8px; color: var(--text); font-size: 14px; outline: none; font-family: inherit; }
-  .drag-handle { width: 12px; height: 16px; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2px; cursor: grab; opacity: 0.3; flex-shrink: 0; }
+  .drag-handle { width: 12px; height: 16px; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2px; cursor: grab; opacity: 0.3; flex-shrink: 0; touch-action: none; }
   .drag-handle span { width: 3px; height: 3px; border-radius: 50%; background: var(--text); }
   .drag-handle.hidden { visibility: hidden; }
   .empty-hint { font-size: 13px; opacity: 0.45; padding: 6px 4px; }
@@ -345,11 +353,19 @@
         <div class="preset" data-mins="50">50 min</div>
         <div class="preset" data-mins="90">90 min</div>
       </div>
-      <div class="controls">
+      <div class="controls" id="controlsRow">
         <button class="btn-primary" id="startBtn">Start</button>
         <button class="btn-ghost" id="skipBtn">Skip</button>
         <button class="btn-ghost" id="resetBtn">Reset</button>
       </div>
+      <div class="lock-confirm" id="lockConfirm" style="display:none;">
+        <div class="lock-confirm-text" id="lockConfirmText">Stop the timer early?</div>
+        <div class="lock-confirm-btns">
+          <button class="btn-ghost" id="lockConfirmNo">Keep going</button>
+          <button class="btn-ghost btn-danger" id="lockConfirmYes">Yes, stop</button>
+        </div>
+      </div>
+      <button class="lock-toggle-btn" id="timerLockToggle">Lock timer</button>
       <div class="session-count" id="sessionCount">0 sessions completed today</div>
       <div class="hint">space = start/pause · r = reset · s = skip</div>
 
@@ -416,6 +432,7 @@
         <h2>Behavior</h2>
         <div class="settings-row"><label class="toggle"><span>Auto-start next session</span><input type="checkbox" id="autoStartToggle" checked></label></div>
         <div class="settings-row"><label class="toggle"><span>Sound on completion</span><input type="checkbox" id="soundToggle" checked></label></div>
+        <div class="settings-row"><span>Ring count</span><input type="number" id="ringCountInput" min="1" max="20" value="5"></div>
         <div class="settings-row"><label class="toggle"><span>Browser notifications</span><input type="checkbox" id="notifyToggle"></label></div>
       </div>
       <div class="spot-card">
@@ -457,7 +474,7 @@
     settings: {
       theme: 'night', focusMins: 25, shortBreakMins: 5, longBreakMins: 15,
       cycleLen: 4, autoStart: true, sound: true, notify: false,
-      ambientSound: 'none', ambientVolume: 30,
+      ambientSound: 'none', ambientVolume: 30, ringCount: 5, timerLockEnabled: false,
       keybinds: { startPause: ' ', reset: 'r', skip: 's' }
     }
   };
@@ -537,6 +554,12 @@
   const startBtn = document.getElementById('startBtn');
   const resetBtn = document.getElementById('resetBtn');
   const skipBtn = document.getElementById('skipBtn');
+  const controlsRow = document.getElementById('controlsRow');
+  const lockConfirm = document.getElementById('lockConfirm');
+  const lockConfirmText = document.getElementById('lockConfirmText');
+  const lockConfirmYes = document.getElementById('lockConfirmYes');
+  const lockConfirmNo = document.getElementById('lockConfirmNo');
+  const timerLockToggle = document.getElementById('timerLockToggle');
   const modeLabel = document.getElementById('modeLabel');
   const sessionCount = document.getElementById('sessionCount');
   const presets = document.querySelectorAll('.preset');
@@ -548,6 +571,7 @@
   const cycleLenInput = document.getElementById('cycleLenInput');
   const autoStartToggle = document.getElementById('autoStartToggle');
   const soundToggle = document.getElementById('soundToggle');
+  const ringCountInput = document.getElementById('ringCountInput');
   const notifyToggle = document.getElementById('notifyToggle');
   const cycleDots = document.getElementById('cycleDots');
   const appEl = document.querySelector('.app');
@@ -581,6 +605,16 @@
   let intervalId = null;
   let sessionInCycle = 0;
   let totalSecondsFocusOverride = state.settings.focusMins * 60;
+  let endTimestamp = null;
+
+  function persistTimerSnapshot() {
+    state.timer = {
+      mode, running, totalSeconds, sessionInCycle, totalSecondsFocusOverride,
+      endTimestamp: running ? endTimestamp : null,
+      remaining: running ? null : remaining
+    };
+    saveState();
+  }
 
   const nightStages = {
     [MODES.FOCUS]: [ {bg1:'#000000',bg2:'#050505',accent:'#a78bfa'}, {bg1:'#000000',bg2:'#030303',accent:'#67e8f9'}, {bg1:'#000000',bg2:'#070502',accent:'#fdba74'} ],
@@ -633,6 +667,7 @@
     modeLabel.textContent = modeLabelText();
     document.title = running ? `${formatTime(remaining)} — ${modeLabelText()}` : 'Focus Flow';
     renderDots();
+    if (typeof syncLockToggleUI === 'function') syncLockToggleUI();
 
     const angleRad = (-90 + progress * 360) * Math.PI / 180;
     const cx = 115, cy = 115, r = 103;
@@ -648,17 +683,21 @@
     if (!state.settings.sound) return;
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      const notes = mode === MODES.FOCUS ? [523.25, 659.25, 783.99] : [659.25, 523.25];
-      notes.forEach((freq, i) => {
+      const freq = mode === MODES.FOCUS ? 880 : 660;
+      const ringCount = Math.max(1, Math.min(20, state.settings.ringCount || 5));
+      const beepDur = 0.18;
+      const gap = 0.22;
+      for (let r = 0; r < ringCount; r++) {
+        const start = audioCtx.currentTime + r * (beepDur + gap);
         const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
         osc.type = 'sine'; osc.frequency.value = freq;
-        const start = audioCtx.currentTime + i * 0.15;
         gain.gain.setValueAtTime(0, start);
-        gain.gain.linearRampToValueAtTime(0.15, start + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.5);
+        gain.gain.linearRampToValueAtTime(0.18, start + 0.015);
+        gain.gain.setValueAtTime(0.18, start + beepDur - 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + beepDur);
         osc.connect(gain).connect(audioCtx.destination);
-        osc.start(start); osc.stop(start + 0.5);
-      });
+        osc.start(start); osc.stop(start + beepDur);
+      }
     } catch (e) {}
   }
   function notify(title, body) {
@@ -671,13 +710,16 @@
     if (m === MODES.SHORT) return state.settings.shortBreakMins * 60;
     return state.settings.longBreakMins * 60;
   }
-  function switchMode(nextMode) { mode = nextMode; totalSeconds = durationFor(mode); remaining = totalSeconds; updateDisplay(); }
+  function switchMode(nextMode) { mode = nextMode; totalSeconds = durationFor(mode); remaining = totalSeconds; endTimestamp = null; updateDisplay(); persistTimerSnapshot(); }
 
   function tick() {
-    if (remaining > 0) {
-      remaining--; updateDisplay();
+    const newRemaining = Math.max(0, Math.round((endTimestamp - Date.now()) / 1000));
+    if (newRemaining !== remaining) {
+      remaining = newRemaining;
+      updateDisplay();
       timeDisplay.classList.remove('tick'); void timeDisplay.offsetWidth; timeDisplay.classList.add('tick');
-    } else { completeSegment(); }
+    }
+    if (remaining <= 0) completeSegment();
   }
 
   function recordSessionToHistory() {
@@ -697,6 +739,7 @@
 
   function completeSegment() {
     running = false; clearInterval(intervalId); playChime(); spawnRipple();
+    if (typeof hideLockConfirm === 'function') hideLockConfirm();
     if (mode === MODES.FOCUS) {
       sessionInCycle++; state.sessionsToday++; state.totalSessions++;
       state.totalFocusSeconds = (state.totalFocusSeconds || 0) + totalSeconds;
@@ -721,29 +764,80 @@
       switchMode(MODES.FOCUS);
     }
     startBtn.textContent = 'Start';
+    persistTimerSnapshot();
     if (state.settings.autoStart) startPause();
   }
 
   function startPause() {
     if (window.__focusFlowLocked) return;
     if (running) {
+      if (state.settings.timerLockEnabled) { showToast("Pausing is locked while the timer's running."); return; }
+      remaining = Math.max(0, Math.round((endTimestamp - Date.now()) / 1000));
       running = false; clearInterval(intervalId); startBtn.textContent = 'Resume'; appEl.classList.remove('running');
     } else {
       running = true; startBtn.textContent = 'Pause'; appEl.classList.add('running');
+      endTimestamp = Date.now() + remaining * 1000;
       intervalId = setInterval(tick, 1000);
       if (state.settings.notify && typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission();
     }
     updateDisplay();
+    persistTimerSnapshot();
   }
-  function resetTimer() { running = false; clearInterval(intervalId); remaining = totalSeconds; startBtn.textContent = 'Start'; appEl.classList.remove('running'); updateDisplay(); }
-  function skipSegment() { running = false; clearInterval(intervalId); remaining = 0; completeSegment(); }
+  function resetTimer() {
+    running = false; clearInterval(intervalId); remaining = totalSeconds; endTimestamp = null;
+    startBtn.textContent = 'Start'; appEl.classList.remove('running'); updateDisplay(); persistTimerSnapshot();
+  }
+  function skipSegment() { running = false; clearInterval(intervalId); remaining = 0; endTimestamp = null; completeSegment(); }
+
+  function isTimerLockEngaged() { return !!state.settings.timerLockEnabled && running; }
+
+  let lockPendingAction = null;
+  function showLockConfirm(action) {
+    lockPendingAction = action;
+    lockConfirmText.textContent = 'Stop the timer? This resets your session.';
+    controlsRow.style.display = 'none';
+    lockConfirm.style.display = 'flex';
+  }
+  function hideLockConfirm() {
+    lockPendingAction = null;
+    lockConfirm.style.display = 'none';
+    controlsRow.style.display = 'flex';
+  }
+  lockConfirmYes.addEventListener('click', () => {
+    hideLockConfirm();
+    resetTimer();
+  });
+  lockConfirmNo.addEventListener('click', hideLockConfirm);
+
+  function syncLockToggleUI() {
+    const on = !!state.settings.timerLockEnabled;
+    timerLockToggle.classList.toggle('active', on);
+    timerLockToggle.textContent = on ? 'Locked — tap to unlock' : 'Lock timer';
+    timerLockToggle.disabled = running;
+    timerLockToggle.title = running ? "Can't change this while a session is running" : '';
+    skipBtn.disabled = isTimerLockEngaged();
+    skipBtn.title = isTimerLockEngaged() ? 'Skip is locked while the timer is running' : '';
+  }
+  timerLockToggle.addEventListener('click', () => {
+    if (running) return;
+    state.settings.timerLockEnabled = !state.settings.timerLockEnabled;
+    saveState(); syncLockToggleUI();
+  });
 
   startBtn.addEventListener('click', startPause);
-  resetBtn.addEventListener('click', resetTimer);
-  skipBtn.addEventListener('click', skipSegment);
+  resetBtn.addEventListener('click', () => { if (isTimerLockEngaged()) showLockConfirm('reset'); else resetTimer(); });
+  skipBtn.addEventListener('click', () => {
+    if (isTimerLockEngaged()) { showToast("Skip is locked while the timer's running."); return; }
+    skipSegment();
+  });
+
+  setInterval(() => { if (running) persistTimerSnapshot(); }, 15000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden && running) persistTimerSnapshot(); });
+  window.addEventListener('pagehide', () => { if (running) persistTimerSnapshot(); });
 
   presets.forEach(p => {
     p.addEventListener('click', () => {
+      if (isTimerLockEngaged()) return;
       presets.forEach(x => x.classList.remove('active')); p.classList.add('active');
       const mins = parseInt(p.dataset.mins, 10);
       totalSecondsFocusOverride = mins * 60; state.settings.focusMins = mins; saveState();
@@ -785,12 +879,14 @@
     shortBreakInput.value = state.settings.shortBreakMins; longBreakInput.value = state.settings.longBreakMins;
     cycleLenInput.value = state.settings.cycleLen; autoStartToggle.checked = state.settings.autoStart;
     soundToggle.checked = state.settings.sound; notifyToggle.checked = state.settings.notify;
+    ringCountInput.value = state.settings.ringCount || 5;
   }
   shortBreakInput.addEventListener('change', () => { state.settings.shortBreakMins = Math.max(1, parseInt(shortBreakInput.value) || 5); saveState(); if (mode === MODES.SHORT && !running) switchMode(MODES.SHORT); });
   longBreakInput.addEventListener('change', () => { state.settings.longBreakMins = Math.max(1, parseInt(longBreakInput.value) || 15); saveState(); if (mode === MODES.LONG && !running) switchMode(MODES.LONG); });
   cycleLenInput.addEventListener('change', () => { state.settings.cycleLen = Math.max(2, parseInt(cycleLenInput.value) || 4); saveState(); renderDots(); });
   autoStartToggle.addEventListener('change', () => { state.settings.autoStart = autoStartToggle.checked; saveState(); });
   soundToggle.addEventListener('change', () => { state.settings.sound = soundToggle.checked; saveState(); });
+  ringCountInput.addEventListener('change', () => { state.settings.ringCount = Math.max(1, Math.min(20, parseInt(ringCountInput.value) || 5)); saveState(); });
   notifyToggle.addEventListener('change', () => {
     state.settings.notify = notifyToggle.checked; saveState();
     if (state.settings.notify && typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission();
@@ -926,14 +1022,15 @@
     state = {
       date: todayStr(), sessionsToday: 0, totalSessions: 0, totalFocusSeconds: 0, currentFocusId: null,
       history: {}, tasks: [],
-      settings: { theme: state.settings.theme, focusMins: 25, shortBreakMins: 5, longBreakMins: 15, cycleLen: 4, autoStart: true, sound: true, notify: false, ambientSound: 'none', ambientVolume: 30 }
+      settings: { theme: state.settings.theme, focusMins: 25, shortBreakMins: 5, longBreakMins: 15, cycleLen: 4, autoStart: true, sound: true, notify: false, ambientSound: 'none', ambientVolume: 30, ringCount: 5, timerLockEnabled: false, keybinds: { startPause: ' ', reset: 'r', skip: 's' } }
     };
     saveState();
     stopAmbient();
     syncSettingsUI(); renderTasks(); renderStats(); updateFocusTaskDisplay();
     presets.forEach(p => p.classList.toggle('active', parseInt(p.dataset.mins) === 25));
     totalSecondsFocusOverride = 25 * 60;
-    if (mode === MODES.FOCUS) { totalSeconds = totalSecondsFocusOverride; resetTimer(); }
+    mode = MODES.FOCUS; sessionInCycle = 0; endTimestamp = null;
+    totalSeconds = totalSecondsFocusOverride; resetTimer();
     sessionCount.textContent = '0 sessions completed today';
     ambientRow.querySelectorAll('.ambient-btn').forEach(b => b.classList.toggle('active', b.dataset.sound === 'none'));
     ambientVolume.value = 30;
@@ -941,7 +1038,7 @@
   });
 
   let taskFilter = 'all';
-  let dragSrcTask = null;
+  let dragState = null;
   const taskFilters = document.getElementById('taskFilters');
   const clearDoneBtn = document.getElementById('clearDoneBtn');
   const taskSummary = document.getElementById('taskSummary');
@@ -978,7 +1075,7 @@
       list.forEach(t => {
         if (!t.id) t.id = 'id_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
         const li = document.createElement('li'); if (t.done) li.classList.add('done'); if (t.starred) li.classList.add('important');
-        li.draggable = taskFilter === 'all';
+        li.__task = t;
 
         const handle = document.createElement('div'); handle.className = 'drag-handle' + (taskFilter === 'all' ? '' : ' hidden');
         for (let k = 0; k < 6; k++) handle.appendChild(document.createElement('span'));
@@ -1017,19 +1114,35 @@
           saveState(); renderTasks(); updateFocusTaskDisplay();
         });
 
-        li.addEventListener('dragstart', () => { dragSrcTask = t; li.classList.add('dragging'); });
-        li.addEventListener('dragend', () => { li.classList.remove('dragging'); dragSrcTask = null; });
-        li.addEventListener('dragover', e => e.preventDefault());
-        li.addEventListener('drop', e => {
-          e.preventDefault();
-          if (!dragSrcTask || dragSrcTask === t) return;
-          const from = state.tasks.indexOf(dragSrcTask);
-          const to = state.tasks.indexOf(t);
-          if (from === -1 || to === -1) return;
-          state.tasks.splice(from, 1);
-          state.tasks.splice(to, 0, dragSrcTask);
-          saveState(); renderTasks();
-        });
+        if (taskFilter === 'all') {
+          handle.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            dragState = { li, pointerId: e.pointerId };
+            li.classList.add('dragging');
+            try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+          });
+          handle.addEventListener('pointermove', (e) => {
+            if (!dragState || dragState.pointerId !== e.pointerId) return;
+            const y = e.clientY;
+            const items = Array.from(taskList.children).filter(el => el.tagName === 'LI' && el !== li);
+            for (const item of items) {
+              const rect = item.getBoundingClientRect();
+              const mid = rect.top + rect.height / 2;
+              if (y < mid && item.previousElementSibling !== li) { taskList.insertBefore(li, item); break; }
+              if (y >= mid && item.nextElementSibling !== li) { taskList.insertBefore(li, item.nextElementSibling); break; }
+            }
+          });
+          const endDrag = (e) => {
+            if (!dragState || dragState.pointerId !== e.pointerId) return;
+            li.classList.remove('dragging');
+            dragState = null;
+            const newOrder = Array.from(taskList.querySelectorAll('li')).map(el => el.__task).filter(Boolean);
+            if (newOrder.length === state.tasks.length) state.tasks = newOrder;
+            saveState(); renderTasks();
+          };
+          handle.addEventListener('pointerup', endDrag);
+          handle.addEventListener('pointercancel', endDrag);
+        }
 
         li.appendChild(handle); li.appendChild(cb); li.appendChild(span); li.appendChild(focusBtn); li.appendChild(star); li.appendChild(del);
         taskList.appendChild(li);
@@ -1103,13 +1216,37 @@
     if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
     const kb = state.settings.keybinds;
     if (keyMatches(e, kb.startPause)) { e.preventDefault(); startPause(); }
-    else if (keyMatches(e, kb.reset)) resetTimer();
-    else if (keyMatches(e, kb.skip)) skipSegment();
+    else if (keyMatches(e, kb.reset)) { if (isTimerLockEngaged()) showLockConfirm('reset'); else resetTimer(); }
+    else if (keyMatches(e, kb.skip)) { if (isTimerLockEngaged()) { showToast("Skip is locked while the timer's running."); } else skipSegment(); }
   });
 
   presets.forEach(p => { if (parseInt(p.dataset.mins) === state.settings.focusMins) p.classList.add('active'); });
   if (![25,45,50,90].includes(state.settings.focusMins)) presets[0].classList.add('active');
   totalSecondsFocusOverride = state.settings.focusMins * 60; totalSeconds = totalSecondsFocusOverride; remaining = totalSeconds;
+
+  let needsAutoComplete = false;
+  if (state.timer && typeof state.timer === 'object') {
+    const t = state.timer;
+    if (t.mode) mode = t.mode;
+    if (typeof t.sessionInCycle === 'number') sessionInCycle = t.sessionInCycle;
+    if (typeof t.totalSecondsFocusOverride === 'number') totalSecondsFocusOverride = t.totalSecondsFocusOverride;
+    if (typeof t.totalSeconds === 'number') totalSeconds = t.totalSeconds;
+    if (t.running && t.endTimestamp) {
+      const rem = Math.max(0, Math.round((t.endTimestamp - Date.now()) / 1000));
+      if (rem > 0) {
+        remaining = rem; endTimestamp = t.endTimestamp; running = true;
+        appEl.classList.add('running'); startBtn.textContent = 'Pause';
+      } else {
+        remaining = 0; needsAutoComplete = true;
+      }
+    } else if (typeof t.remaining === 'number' && t.remaining < totalSeconds) {
+      remaining = t.remaining; startBtn.textContent = 'Resume';
+    }
+  }
+  window.__focusFlowResumeTimer = function () {
+    if (needsAutoComplete) { needsAutoComplete = false; completeSegment(); return; }
+    if (running && endTimestamp && !intervalId) intervalId = setInterval(tick, 1000);
+  };
   sessionCount.textContent = `${state.sessionsToday} session${state.sessionsToday === 1 ? '' : 's'} completed today`;
   ambientRow.querySelectorAll('.ambient-btn').forEach(b => b.classList.toggle('active', b.dataset.sound === (state.settings.ambientSound || 'none')));
   ambientVolume.value = state.settings.ambientVolume || 30;
@@ -1266,6 +1403,7 @@
       lockScreen.classList.add('unlocked');
       appRoot.style.display = 'flex';
       if (window.__focusFlowRefreshDisplay) window.__focusFlowRefreshDisplay();
+      if (window.__focusFlowResumeTimer) window.__focusFlowResumeTimer();
     }, 650);
   }
 
