@@ -124,7 +124,15 @@
   .lock-confirm-btns { display: flex; gap: 10px; }
   .ambient-btn { background: var(--card); border: 1px solid var(--card-border); color: var(--text); padding: 5px 12px; border-radius: 999px; font-size: 11px; opacity: 0.65; }
   .ambient-btn.active { opacity: 1; background: rgba(167,139,250,0.25); border-color: var(--accent); }
-  .ambient-row input[type=range] { width: 70px; accent-color: var(--accent-soft); margin-left: 4px; }
+  .ambient-mixer { width: 100%; max-width: 340px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px; margin-top: 4px; animation: lockFadeUp 0.25s ease; }
+  .ambient-bands { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .ambient-band-row { display: grid; grid-template-columns: 58px 1fr 26px; align-items: center; gap: 8px; }
+  .ambient-band-label { font-size: 10px; opacity: 0.6; }
+  .ambient-band-row input[type=range] { width: 100%; accent-color: var(--accent-soft); }
+  .ambient-band-val { font-size: 10px; opacity: 0.5; text-align: right; font-variant-numeric: tabular-nums; }
+  .ambient-mod-row { display: flex; align-items: center; gap: 8px; font-size: 12px; opacity: 0.8; cursor: pointer; margin-bottom: 10px; }
+  .ambient-volume-row { display: flex; align-items: center; gap: 10px; font-size: 12px; opacity: 0.8; }
+  .ambient-volume-row input[type=range] { flex: 1; accent-color: var(--accent-soft); }
 
   .data-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .data-actions button { flex: 1; min-width: 80px; padding: 9px 10px; font-size: 12px; }
@@ -319,6 +327,7 @@
     <div class="nav-tabs" id="navTabs">
       <button class="nav-tab active" data-page="timer">Timer</button>
       <button class="nav-tab" data-page="tasks">Tasks<span class="nav-badge" id="tasksNavBadge" style="display:none;"></span></button>
+      <button class="nav-tab" data-page="sounds">Sounds</button>
       <button class="nav-tab" data-page="stats">Stats</button>
       <button class="nav-tab" data-page="settings">Settings</button>
     </div>
@@ -368,14 +377,6 @@
       <button class="lock-toggle-btn" id="timerLockToggle">Lock timer</button>
       <div class="session-count" id="sessionCount">0 sessions completed today</div>
       <div class="hint">space = start/pause · r = reset · s = skip</div>
-
-      <div class="ambient-row" id="ambientRow">
-        <button class="ambient-btn" data-sound="none">None</button>
-        <button class="ambient-btn" data-sound="white">White</button>
-        <button class="ambient-btn" data-sound="brown">Brown</button>
-        <button class="ambient-btn" data-sound="rain">Rain</button>
-        <input type="range" id="ambientVolume" min="0" max="100" value="30" title="Ambient volume">
-      </div>
     </section>
 
     <!-- TASKS PAGE -->
@@ -397,6 +398,35 @@
         </div>
         <ul class="task-list" id="taskList"></ul>
         <div class="task-summary" id="taskSummary"></div>
+      </div>
+    </section>
+
+    <!-- SOUNDS PAGE -->
+    <section class="page" data-page="sounds" id="page-sounds">
+      <div class="spot-card">
+        <h2>Ambient sound</h2>
+        <div class="sub">Sculpt your own background sound, or start from a preset.</div>
+        <div class="ambient-row" id="ambientRow">
+          <button class="ambient-btn active" data-preset="off">Off</button>
+          <button class="ambient-btn" data-preset="rain">Rain</button>
+          <button class="ambient-btn" data-preset="river">River</button>
+          <button class="ambient-btn" data-preset="waterfall">Waterfall</button>
+          <button class="ambient-btn" data-preset="ocean">Ocean</button>
+          <button class="ambient-btn" data-preset="wind">Wind</button>
+          <button class="ambient-btn" data-preset="night">Night</button>
+        </div>
+      </div>
+      <div class="spot-card">
+        <h2>Ambience</h2>
+        <div class="sub">Mix in as many as you want — how much of each.</div>
+        <div class="ambient-bands" id="ambientTextures"></div>
+        <div class="ambient-volume-row"><span>Volume</span><input type="range" id="ambientVolume" min="0" max="100" value="30"></div>
+      </div>
+      <div class="spot-card">
+        <h2>Creatures</h2>
+        <div class="sub">Layer in living sounds — how much of each.</div>
+        <div class="ambient-bands" id="ambientTextureRows"></div>
+        <button class="btn-ghost btn-danger" id="ambientResetBtn">Reset all sounds</button>
       </div>
     </section>
 
@@ -474,7 +504,7 @@
     settings: {
       theme: 'night', focusMins: 25, shortBreakMins: 5, longBreakMins: 15,
       cycleLen: 4, autoStart: true, sound: true, notify: false,
-      ambientSound: 'none', ambientVolume: 30, ringCount: 5, timerLockEnabled: false,
+      ambientPreset: 'off', ambientLayers: {}, ambientVolume: 30, ringCount: 5, timerLockEnabled: false,
       keybinds: { startPause: ' ', reset: 'r', skip: 's' }
     }
   };
@@ -587,6 +617,9 @@
   const focusTaskClear = document.getElementById('focusTaskClear');
   const ambientRow = document.getElementById('ambientRow');
   const ambientVolume = document.getElementById('ambientVolume');
+  const ambientTexturesEl = document.getElementById('ambientTextures');
+  const ambientCreaturesEl = document.getElementById('ambientTextureRows');
+  const ambientResetBtn = document.getElementById('ambientResetBtn');
   const exportBtn = document.getElementById('exportBtn');
   const importBtn = document.getElementById('importBtn');
   const importFile = document.getElementById('importFile');
@@ -930,61 +963,278 @@
     showToast('Controls reset to defaults');
   });
 
-  // ---------- Ambient sound ----------
-  let ambientCtx = null, ambientSource = null, ambientGain = null, ambientFilter = null;
-  function makeNoiseBuffer(ctx, type) {
+  // ---------- Ambient sound: named, mixable layers (all synthesized live, no samples) ----------
+  const AMBIENCE_KEYS = ['rain', 'wind', 'river', 'waves', 'thunder', 'fire'];
+  const CREATURE_KEYS = ['crickets', 'frogs', 'birds'];
+
+  let ambientCtx = null, ambientMaster = null, ambientNoiseBuffer = null;
+  let noiseNodes = {};
+  let burstTimers = {};
+
+  function makeNoiseBuffer(ctx) {
     const len = ctx.sampleRate * 2;
     const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
     const data = buffer.getChannelData(0);
-    if (type === 'brown') {
-      let last = 0;
-      for (let i = 0; i < len; i++) {
-        const white = Math.random() * 2 - 1;
-        data[i] = (last + 0.02 * white) / 1.02;
-        last = data[i];
-        data[i] *= 3.2;
-      }
-    } else {
-      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-    }
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
     return buffer;
   }
-  function stopAmbient() {
-    if (ambientSource) { try { ambientSource.stop(); } catch (e) {} ambientSource.disconnect(); ambientSource = null; }
-    if (ambientFilter) { ambientFilter.disconnect(); ambientFilter = null; }
-    if (ambientGain) { ambientGain.disconnect(); ambientGain = null; }
-  }
-  function startAmbient(type) {
-    stopAmbient();
-    if (type === 'none') return;
+  function ensureAmbientCtx() {
     ambientCtx = ambientCtx || new (window.AudioContext || window.webkitAudioContext)();
-    const buffer = makeNoiseBuffer(ambientCtx, type === 'brown' ? 'brown' : 'white');
-    ambientSource = ambientCtx.createBufferSource();
-    ambientSource.buffer = buffer; ambientSource.loop = true;
-    ambientFilter = ambientCtx.createBiquadFilter();
-    if (type === 'rain') { ambientFilter.type = 'bandpass'; ambientFilter.frequency.value = 2200; ambientFilter.Q.value = 0.6; }
-    else if (type === 'brown') { ambientFilter.type = 'lowpass'; ambientFilter.frequency.value = 400; }
-    else { ambientFilter.type = 'lowpass'; ambientFilter.frequency.value = 9000; }
-    ambientGain = ambientCtx.createGain();
-    ambientGain.gain.value = (state.settings.ambientVolume || 30) / 100 * 0.5;
-    ambientSource.connect(ambientFilter).connect(ambientGain).connect(ambientCtx.destination);
-    ambientSource.start();
+    ambientNoiseBuffer = ambientNoiseBuffer || makeNoiseBuffer(ambientCtx);
+    return ambientCtx;
   }
-  function setAmbientVolume(v) { if (ambientGain) ambientGain.gain.value = v / 100 * 0.5; }
+  function ensureMaster() {
+    ensureAmbientCtx();
+    if (!ambientMaster) {
+      ambientMaster = ambientCtx.createGain();
+      ambientMaster.gain.value = (state.settings.ambientVolume || 30) / 100 * 0.6;
+      ambientMaster.connect(ambientCtx.destination);
+    }
+    return ambientMaster;
+  }
+
+  function playThunderRumble(level) {
+    const vol = 0.06 + level * 0.3;
+    const now = ambientCtx.currentTime;
+    const src = ambientCtx.createBufferSource(); src.buffer = ambientNoiseBuffer; src.loop = true;
+    const filt = ambientCtx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 140 + Math.random() * 70;
+    const g = ambientCtx.createGain();
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.4);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 2.6);
+    src.connect(filt).connect(g).connect(ambientMaster);
+    src.start(now); src.stop(now + 2.7);
+  }
+  function playFireCrackle(level) {
+    const vol = 0.04 + level * 0.18;
+    const now = ambientCtx.currentTime;
+    const src = ambientCtx.createBufferSource(); src.buffer = ambientNoiseBuffer; src.loop = true;
+    const filt = ambientCtx.createBiquadFilter(); filt.type = 'highpass'; filt.frequency.value = 2500 + Math.random() * 1800;
+    const g = ambientCtx.createGain();
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    src.connect(filt).connect(g).connect(ambientMaster);
+    src.start(now); src.stop(now + 0.06);
+  }
+  function playCricketChirp(level) {
+    const vol = 0.05 + level * 0.2;
+    const now = ambientCtx.currentTime;
+    for (let i = 0; i < 3; i++) {
+      const t = now + i * 0.09;
+      const osc = ambientCtx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 4200 + Math.random() * 200;
+      const g = ambientCtx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+      osc.connect(g).connect(ambientMaster);
+      osc.start(t); osc.stop(t + 0.06);
+    }
+  }
+  function playFrogCroak(level) {
+    const vol = 0.08 + level * 0.25;
+    const now = ambientCtx.currentTime;
+    const osc = ambientCtx.createOscillator(); osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(140, now + 0.15);
+    const filt = ambientCtx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 600;
+    const g = ambientCtx.createGain();
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.connect(filt).connect(g).connect(ambientMaster);
+    osc.start(now); osc.stop(now + 0.25);
+  }
+  function playBirdTweet(level) {
+    const vol = 0.05 + level * 0.18;
+    const now = ambientCtx.currentTime;
+    const osc = ambientCtx.createOscillator(); osc.type = 'sine';
+    osc.frequency.setValueAtTime(2200, now);
+    osc.frequency.exponentialRampToValueAtTime(3400, now + 0.12);
+    const g = ambientCtx.createGain();
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(g).connect(ambientMaster);
+    osc.start(now); osc.stop(now + 0.16);
+  }
+
+  const LAYER_DEFS = {
+    rain: { type: 'noise', label: 'Rain', filter: 'bandpass', freq: 3200, q: 0.5 },
+    wind: { type: 'noise', label: 'Wind', filter: 'bandpass', freq: 500, q: 0.6, sweep: true },
+    river: { type: 'noise', label: 'River', filter: 'bandpass', freq: 1200, q: 0.5 },
+    waves: { type: 'noise', label: 'Waves', filter: 'lowpass', freq: 300, q: 0.7, swell: true },
+    thunder: { type: 'burst', label: 'Thunder', play: playThunderRumble, minDelay: 14000, spread: 24000, extra: 9000 },
+    fire: { type: 'burst', label: 'Fire crackle', play: playFireCrackle, minDelay: 110, spread: 260, extra: 140 },
+    crickets: { type: 'burst', label: 'Crickets', play: playCricketChirp, minDelay: 150, spread: 1650, extra: 400 },
+    frogs: { type: 'burst', label: 'Frogs', play: playFrogCroak, minDelay: 800, spread: 3200, extra: 800 },
+    birds: { type: 'burst', label: 'Birds', play: playBirdTweet, minDelay: 600, spread: 2400, extra: 600 }
+  };
+
+  const AMBIENT_PRESETS = {
+    rain: { rain: 70, wind: 10 },
+    river: { river: 65, rain: 10 },
+    waterfall: { river: 45, rain: 30, waves: 20 },
+    ocean: { waves: 75, wind: 10 },
+    wind: { wind: 70 },
+    night: { rain: 15, waves: 10, crickets: 60, frogs: 35 }
+  };
+
+  function startNoiseLayer(key) {
+    const def = LAYER_DEFS[key];
+    ensureMaster();
+    const src = ambientCtx.createBufferSource(); src.buffer = ambientNoiseBuffer; src.loop = true;
+    const filt = ambientCtx.createBiquadFilter(); filt.type = def.filter; filt.frequency.value = def.freq; filt.Q.value = def.q;
+    const gain = ambientCtx.createGain();
+    const lvl = (state.settings.ambientLayers[key] || 0) / 100 * 0.4;
+    gain.gain.value = lvl;
+    src.connect(filt).connect(gain).connect(ambientMaster);
+    src.start();
+    let lfo = null, lfoGain = null;
+    if (def.swell) {
+      lfo = ambientCtx.createOscillator(); lfo.frequency.value = 0.06;
+      lfoGain = ambientCtx.createGain(); lfoGain.gain.value = lvl * 0.4;
+      lfo.connect(lfoGain).connect(gain.gain); lfo.start();
+    } else if (def.sweep) {
+      lfo = ambientCtx.createOscillator(); lfo.frequency.value = 0.045;
+      lfoGain = ambientCtx.createGain(); lfoGain.gain.value = def.freq * 0.5;
+      lfo.connect(lfoGain).connect(filt.frequency); lfo.start();
+    }
+    noiseNodes[key] = { source: src, filter: filt, gain, lfo, lfoGain };
+  }
+  function stopNoiseLayer(key) {
+    const n = noiseNodes[key]; if (!n) return;
+    try { n.source.stop(); } catch (e) {}
+    n.source.disconnect(); n.filter.disconnect(); n.gain.disconnect();
+    if (n.lfo) { try { n.lfo.stop(); } catch (e) {} n.lfo.disconnect(); }
+    if (n.lfoGain) n.lfoGain.disconnect();
+    delete noiseNodes[key];
+  }
+  function setNoiseLevel(key, val) {
+    if (val > 0 && !noiseNodes[key]) startNoiseLayer(key);
+    else if (val <= 0 && noiseNodes[key]) stopNoiseLayer(key);
+    else if (noiseNodes[key]) {
+      const g = noiseNodes[key].gain.gain;
+      g.cancelScheduledValues(ambientCtx.currentTime);
+      g.linearRampToValueAtTime(val / 100 * 0.4, ambientCtx.currentTime + 0.08);
+      if (noiseNodes[key].lfoGain) noiseNodes[key].lfoGain.gain.value = (val / 100 * 0.4) * 0.4;
+    }
+  }
+
+  function scheduleBurst(key) {
+    const level = (state.settings.ambientLayers && state.settings.ambientLayers[key]) || 0;
+    if (level <= 0) { delete burstTimers[key]; return; }
+    const def = LAYER_DEFS[key];
+    ensureMaster();
+    try { def.play(level / 100); } catch (e) {}
+    const delay = def.minDelay + (1 - level / 100) * def.spread + Math.random() * def.extra;
+    burstTimers[key] = setTimeout(() => scheduleBurst(key), delay);
+  }
+  function ensureBurstScheduled(key) { if (!burstTimers[key]) scheduleBurst(key); }
+
+  function setLayerLevel(key, val) {
+    if (!state.settings.ambientLayers) state.settings.ambientLayers = {};
+    state.settings.ambientLayers[key] = val;
+    const def = LAYER_DEFS[key];
+    if (def.type === 'noise') setNoiseLevel(key, val);
+    else if (val > 0) ensureBurstScheduled(key);
+  }
+
+  function anyLayerActive() {
+    return Object.keys(noiseNodes).length > 0 || Object.keys(burstTimers).length > 0;
+  }
+
+  function stopAmbient() {
+    Object.keys(noiseNodes).forEach(stopNoiseLayer);
+    Object.keys(burstTimers).forEach(k => clearTimeout(burstTimers[k]));
+    burstTimers = {};
+    if (ambientMaster) { ambientMaster.disconnect(); ambientMaster = null; }
+  }
+
+  function startAllActiveLayers() {
+    const layers = state.settings.ambientLayers || {};
+    Object.keys(LAYER_DEFS).forEach(key => {
+      const v = layers[key] || 0;
+      if (v <= 0) return;
+      const def = LAYER_DEFS[key];
+      if (def.type === 'noise') startNoiseLayer(key);
+      else ensureBurstScheduled(key);
+    });
+  }
+
+  function setAmbientVolume(v) {
+    if (ambientMaster) {
+      const g = ambientMaster.gain;
+      g.cancelScheduledValues(ambientCtx.currentTime);
+      g.linearRampToValueAtTime(v / 100 * 0.6, ambientCtx.currentTime + 0.08);
+    }
+  }
+
+  function buildLayerRows(containerEl, keys) {
+    containerEl.innerHTML = '';
+    if (!state.settings.ambientLayers) state.settings.ambientLayers = {};
+    keys.forEach(key => {
+      const def = LAYER_DEFS[key];
+      const row = document.createElement('div'); row.className = 'ambient-band-row';
+      const label = document.createElement('span'); label.className = 'ambient-band-label'; label.textContent = def.label;
+      const slider = document.createElement('input'); slider.type = 'range'; slider.min = 0; slider.max = 100;
+      slider.value = state.settings.ambientLayers[key] || 0;
+      const val = document.createElement('span'); val.className = 'ambient-band-val'; val.textContent = slider.value;
+      slider.addEventListener('input', () => {
+        val.textContent = slider.value;
+        const v = parseInt(slider.value, 10);
+        setLayerLevel(key, v);
+        state.settings.ambientPreset = 'custom';
+        setAmbientPresetActive('custom');
+        saveState();
+      });
+      row.appendChild(label); row.appendChild(slider); row.appendChild(val);
+      containerEl.appendChild(row);
+    });
+  }
+  function buildAmbienceUI() { buildLayerRows(ambientTexturesEl, AMBIENCE_KEYS); }
+  function buildCreatureUI() { buildLayerRows(ambientCreaturesEl, CREATURE_KEYS); }
+
+  function setAmbientPresetActive(name) {
+    ambientRow.querySelectorAll('.ambient-btn').forEach(b => b.classList.toggle('active', b.dataset.preset === name));
+  }
+
+  function applyAmbientPreset(name) {
+    state.settings.ambientPreset = name;
+    setAmbientPresetActive(name);
+    stopAmbient();
+    if (name === 'off') {
+      state.settings.ambientLayers = {};
+      buildAmbienceUI(); buildCreatureUI();
+      saveState();
+      return;
+    }
+    const preset = AMBIENT_PRESETS[name] || {};
+    const layers = {};
+    Object.keys(LAYER_DEFS).forEach(k => { layers[k] = preset[k] || 0; });
+    state.settings.ambientLayers = layers;
+    ensureMaster();
+    startAllActiveLayers();
+    buildAmbienceUI(); buildCreatureUI();
+    saveState();
+  }
 
   ambientRow.querySelectorAll('.ambient-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      ambientRow.querySelectorAll('.ambient-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.settings.ambientSound = btn.dataset.sound;
-      saveState();
-      startAmbient(state.settings.ambientSound);
-    });
+    btn.addEventListener('click', () => applyAmbientPreset(btn.dataset.preset));
   });
   ambientVolume.addEventListener('input', () => {
     state.settings.ambientVolume = parseInt(ambientVolume.value, 10);
     setAmbientVolume(state.settings.ambientVolume);
     saveState();
+  });
+  ambientResetBtn.addEventListener('click', () => {
+    state.settings.ambientPreset = 'off';
+    state.settings.ambientLayers = {};
+    stopAmbient();
+    setAmbientPresetActive('off');
+    buildAmbienceUI(); buildCreatureUI();
+    saveState();
+    showToast('Ambient sound reset');
   });
 
   // ---------- Data export / import / reset ----------
@@ -1009,8 +1259,12 @@
         saveState();
         syncSettingsUI(); renderTasks(); renderStats(); updateFocusTaskDisplay();
         sessionCount.textContent = `${state.sessionsToday} session${state.sessionsToday === 1 ? '' : 's'} completed today`;
-        ambientRow.querySelectorAll('.ambient-btn').forEach(b => b.classList.toggle('active', b.dataset.sound === state.settings.ambientSound));
+        setAmbientPresetActive(state.settings.ambientPreset || 'off');
+        buildAmbienceUI();
+        buildCreatureUI();
         ambientVolume.value = state.settings.ambientVolume || 30;
+        stopAmbient();
+        if (state.settings.ambientPreset && state.settings.ambientPreset !== 'off') startAllActiveLayers();
         showToast('Data imported');
       } catch (e) { showToast('Could not read that file'); }
       importFile.value = '';
@@ -1022,7 +1276,7 @@
     state = {
       date: todayStr(), sessionsToday: 0, totalSessions: 0, totalFocusSeconds: 0, currentFocusId: null,
       history: {}, tasks: [],
-      settings: { theme: state.settings.theme, focusMins: 25, shortBreakMins: 5, longBreakMins: 15, cycleLen: 4, autoStart: true, sound: true, notify: false, ambientSound: 'none', ambientVolume: 30, ringCount: 5, timerLockEnabled: false, keybinds: { startPause: ' ', reset: 'r', skip: 's' } }
+      settings: { theme: state.settings.theme, focusMins: 25, shortBreakMins: 5, longBreakMins: 15, cycleLen: 4, autoStart: true, sound: true, notify: false, ambientPreset: 'off', ambientLayers: {}, ambientVolume: 30, ringCount: 5, timerLockEnabled: false, keybinds: { startPause: ' ', reset: 'r', skip: 's' } }
     };
     saveState();
     stopAmbient();
@@ -1032,7 +1286,9 @@
     mode = MODES.FOCUS; sessionInCycle = 0; endTimestamp = null;
     totalSeconds = totalSecondsFocusOverride; resetTimer();
     sessionCount.textContent = '0 sessions completed today';
-    ambientRow.querySelectorAll('.ambient-btn').forEach(b => b.classList.toggle('active', b.dataset.sound === 'none'));
+    setAmbientPresetActive('off');
+    buildAmbienceUI();
+    buildCreatureUI();
     ambientVolume.value = 30;
     showToast('All data reset');
   });
@@ -1248,7 +1504,9 @@
     if (running && endTimestamp && !intervalId) intervalId = setInterval(tick, 1000);
   };
   sessionCount.textContent = `${state.sessionsToday} session${state.sessionsToday === 1 ? '' : 's'} completed today`;
-  ambientRow.querySelectorAll('.ambient-btn').forEach(b => b.classList.toggle('active', b.dataset.sound === (state.settings.ambientSound || 'none')));
+  buildAmbienceUI();
+  buildCreatureUI();
+  setAmbientPresetActive(state.settings.ambientPreset || 'off');
   ambientVolume.value = state.settings.ambientVolume || 30;
   window.__focusFlowRefreshDisplay = updateDisplay;
   syncSettingsUI(); updateDisplay(); renderTasks(); renderStats(); updateFocusTaskDisplay(); refreshKeybindLabels();
