@@ -965,7 +965,7 @@
 
   // ---------- Ambient sound: named, mixable layers (all synthesized live, no samples) ----------
   const AMBIENCE_KEYS = ['rain', 'wind', 'river', 'waves', 'thunder', 'fire'];
-  const CREATURE_KEYS = ['crickets', 'frogs', 'birds'];
+  const CREATURE_KEYS = ['crickets', 'frogs', 'birds', 'owl', 'cicadas', 'wolf'];
 
   let ambientCtx = null, ambientMaster = null, ambientNoiseBuffer = null;
   let noiseNodes = {};
@@ -994,16 +994,32 @@
   }
 
   function playThunderRumble(level) {
-    const vol = 0.06 + level * 0.3;
+    const vol = 0.16 + level * 0.55;
     const now = ambientCtx.currentTime;
+    const duration = 4.5 + Math.random() * 2.5;
+    // long rolling rumble body with internal swells so it actually lasts
     const src = ambientCtx.createBufferSource(); src.buffer = ambientNoiseBuffer; src.loop = true;
-    const filt = ambientCtx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 140 + Math.random() * 70;
+    const filt = ambientCtx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 220 + Math.random() * 100;
     const g = ambientCtx.createGain();
     g.gain.setValueAtTime(0, now);
-    g.gain.linearRampToValueAtTime(vol, now + 0.4);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 2.6);
+    g.gain.linearRampToValueAtTime(vol, now + 0.5);
+    g.gain.setValueAtTime(vol, now + duration * 0.5);
+    g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    const roll = ambientCtx.createOscillator(); roll.type = 'sine'; roll.frequency.value = 0.5 + Math.random() * 0.5;
+    const rollGain = ambientCtx.createGain(); rollGain.gain.value = vol * 0.35;
+    roll.connect(rollGain).connect(g.gain);
+    roll.start(now); roll.stop(now + duration);
     src.connect(filt).connect(g).connect(ambientMaster);
-    src.start(now); src.stop(now + 2.7);
+    src.start(now); src.stop(now + duration + 0.2);
+    // sharper crack transient at onset so it actually cuts through
+    const crackSrc = ambientCtx.createBufferSource(); crackSrc.buffer = ambientNoiseBuffer; crackSrc.loop = true;
+    const crackFilt = ambientCtx.createBiquadFilter(); crackFilt.type = 'bandpass'; crackFilt.frequency.value = 550; crackFilt.Q.value = 0.7;
+    const crackGain = ambientCtx.createGain();
+    crackGain.gain.setValueAtTime(0, now);
+    crackGain.gain.linearRampToValueAtTime(vol * 0.85, now + 0.02);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    crackSrc.connect(crackFilt).connect(crackGain).connect(ambientMaster);
+    crackSrc.start(now); crackSrc.stop(now + 0.45);
   }
   function playFireCrackle(level) {
     const vol = 0.04 + level * 0.18;
@@ -1032,18 +1048,55 @@
     }
   }
   function playFrogCroak(level) {
-    const vol = 0.08 + level * 0.25;
+    const vol = 0.11 + level * 0.32;
+    const now = ambientCtx.currentTime;
+    const pulses = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < pulses; i++) {
+      const t = now + i * 0.22;
+      const osc = ambientCtx.createOscillator(); osc.type = 'square'; osc.frequency.value = 95 + Math.random() * 20;
+      const filt = ambientCtx.createBiquadFilter(); filt.type = 'bandpass'; filt.frequency.value = 380 + Math.random() * 80; filt.Q.value = 4;
+      const g = ambientCtx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + 0.015);
+      g.gain.setValueAtTime(vol, t + 0.09);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+      osc.connect(filt).connect(g).connect(ambientMaster);
+      osc.start(t); osc.stop(t + 0.18);
+    }
+  }
+  function playOwlHoot(level) {
+    const vol = 0.09 + level * 0.26;
+    const now = ambientCtx.currentTime;
+    [0, 0.55].forEach((offset, i) => {
+      const t = now + offset;
+      const dur = i === 0 ? 0.35 : 0.5;
+      const osc = ambientCtx.createOscillator(); osc.type = 'sine';
+      osc.frequency.setValueAtTime(340, t);
+      osc.frequency.exponentialRampToValueAtTime(260, t + dur);
+      const g = ambientCtx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + 0.05);
+      g.gain.setValueAtTime(vol, t + dur * 0.6);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.connect(g).connect(ambientMaster);
+      osc.start(t); osc.stop(t + dur + 0.05);
+    });
+  }
+  function playWolfHowl(level) {
+    const vol = 0.1 + level * 0.3;
     const now = ambientCtx.currentTime;
     const osc = ambientCtx.createOscillator(); osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(220, now);
-    osc.frequency.exponentialRampToValueAtTime(140, now + 0.15);
-    const filt = ambientCtx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 600;
+    osc.frequency.linearRampToValueAtTime(340, now + 0.6);
+    osc.frequency.linearRampToValueAtTime(260, now + 1.6);
+    const filt = ambientCtx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 900;
     const g = ambientCtx.createGain();
     g.gain.setValueAtTime(0, now);
-    g.gain.linearRampToValueAtTime(vol, now + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    g.gain.linearRampToValueAtTime(vol, now + 0.3);
+    g.gain.setValueAtTime(vol, now + 1.2);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
     osc.connect(filt).connect(g).connect(ambientMaster);
-    osc.start(now); osc.stop(now + 0.25);
+    osc.start(now); osc.stop(now + 2.1);
   }
   function playBirdTweet(level) {
     const vol = 0.05 + level * 0.18;
@@ -1064,11 +1117,14 @@
     wind: { type: 'noise', label: 'Wind', filter: 'bandpass', freq: 500, q: 0.6, sweep: true },
     river: { type: 'noise', label: 'River', filter: 'bandpass', freq: 1200, q: 0.5 },
     waves: { type: 'noise', label: 'Waves', filter: 'lowpass', freq: 300, q: 0.7, swell: true },
-    thunder: { type: 'burst', label: 'Thunder', play: playThunderRumble, minDelay: 14000, spread: 24000, extra: 9000 },
+    thunder: { type: 'burst', label: 'Thunder', play: playThunderRumble, minDelay: 9000, spread: 16000, extra: 6000 },
     fire: { type: 'burst', label: 'Fire crackle', play: playFireCrackle, minDelay: 110, spread: 260, extra: 140 },
     crickets: { type: 'burst', label: 'Crickets', play: playCricketChirp, minDelay: 150, spread: 1650, extra: 400 },
     frogs: { type: 'burst', label: 'Frogs', play: playFrogCroak, minDelay: 800, spread: 3200, extra: 800 },
-    birds: { type: 'burst', label: 'Birds', play: playBirdTweet, minDelay: 600, spread: 2400, extra: 600 }
+    birds: { type: 'burst', label: 'Birds', play: playBirdTweet, minDelay: 600, spread: 2400, extra: 600 },
+    owl: { type: 'burst', label: 'Owl', play: playOwlHoot, minDelay: 8000, spread: 14000, extra: 5000 },
+    cicadas: { type: 'noise', label: 'Cicadas', filter: 'bandpass', freq: 4200, q: 1.2, trem: 17 },
+    wolf: { type: 'burst', label: 'Wolf', play: playWolfHowl, minDelay: 16000, spread: 22000, extra: 8000 }
   };
 
   const AMBIENT_PRESETS = {
@@ -1099,6 +1155,10 @@
       lfo = ambientCtx.createOscillator(); lfo.frequency.value = 0.045;
       lfoGain = ambientCtx.createGain(); lfoGain.gain.value = def.freq * 0.5;
       lfo.connect(lfoGain).connect(filt.frequency); lfo.start();
+    } else if (def.trem) {
+      lfo = ambientCtx.createOscillator(); lfo.frequency.value = def.trem;
+      lfoGain = ambientCtx.createGain(); lfoGain.gain.value = lvl * 0.6;
+      lfo.connect(lfoGain).connect(gain.gain); lfo.start();
     }
     noiseNodes[key] = { source: src, filter: filt, gain, lfo, lfoGain };
   }
